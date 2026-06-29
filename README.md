@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FITS
 
-## Getting Started
+Premium sportswear storefront built with Next.js 16, TypeScript, Tailwind CSS, Supabase and Paystack.
 
-First, run the development server:
+## Run locally
 
 ```bash
+cd D:\fits
+copy .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. The catalogue UI works with demo products before services are configured.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Fill `.env.local`:
 
-## Learn More
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxx
+PAYSTACK_SECRET_KEY=sk_test_xxx
+```
 
-To learn more about Next.js, take a look at the following resources:
+Only variables prefixed `NEXT_PUBLIC_` reach the browser. Never prefix the Paystack secret or Supabase service-role key.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supabase setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Create a Supabase project.
+2. Open SQL Editor and run `supabase/schema.sql`.
+3. In Authentication → URL Configuration, set the site URL to `http://localhost:3000` during development and add the production URL later.
+4. Add the URL and anon key to `.env.local`.
+5. Product images use the public `product-images` Storage bucket created by the migration. Uploads are restricted to admins.
 
-## Deploy on Vercel
+The migration creates products, image metadata, profiles, carts, cart items, orders, order items, payments, editable site content, RLS policies, and an atomic paid-order finalizer.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## First admin
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Sign up through `/auth/signup` and confirm the email.
+2. In Supabase SQL Editor, use the account email:
+
+```sql
+update public.profiles
+set role = 'admin'
+where id = (select id from auth.users where email = 'manager@example.com');
+```
+
+3. Sign out/in, then visit `/admin`. Never expose an admin promotion action publicly.
+
+## Paystack
+
+Get test keys from Paystack Dashboard → Settings → API Keys & Webhooks, put them in `.env.local`, and restart Next.js. Checkout creates a pending order from server-fetched prices, initializes Paystack server-side, then verifies status, amount and currency server-side before the database function atomically marks it paid and deducts stock.
+
+For production, set the Paystack webhook URL to `/api/paystack/webhook` when a webhook handler is added; the callback verification already handles the normal browser flow.
+
+## Manual production checklist
+
+- Replace demo placeholders by uploading licensed WebP/JPEG images to Supabase Storage and recording their public URLs.
+- Add production Supabase and Paystack keys to the hosting provider (Vercel recommended).
+- Set production Auth redirect URLs, domain, shipping rules, privacy/returns pages, and transactional email.
+- Complete the inline admin product editor if the manager should avoid Supabase Studio; all database authorization is already in place.
+- Test Paystack in test mode, then swap to live keys only after the live domain is configured.
+

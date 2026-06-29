@@ -1,0 +1,67 @@
+.hero {
+  display: block;
+  position: relative;
+}
+
+.hero-copy {
+  width: 52%;
+}
+
+.hero-copy .button {
+  position: relative;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.hero > .hero-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  cursor: default;
+  pointer-events: none;
+}
+
+.hero > .hero-scene .hero-scene-label strong {
+  transform: translateX(25vw);
+}
+
+@media (max-width: 800px) {
+  .hero-copy {
+    width: 100%;
+  }
+
+  .hero > .hero-scene .hero-scene-label strong {
+    transform: none;
+  }
+}
+
+.ticker {
+  padding: 0;
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  padding: 13px 0;
+  will-change: transform;
+  animation: fits-marquee 28s linear infinite;
+}
+
+.ticker-track span {
+  flex: none;
+  white-space: nowrap;
+}
+
+@keyframes fits-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation-play-state: paused;
+  }
+}

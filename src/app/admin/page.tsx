@@ -1,0 +1,1 @@
+export default function Admin(){return <><span className="eyebrow">MANAGER OVERVIEW</span><h1>Good day.</h1><p>Manage the store without touching code.</p><div className="stat-grid"><div className="stat"><b>6</b><span>Active products</span></div><div className="stat"><b>0</b><span>Open orders</span></div><div className="stat"><b>₦0</b><span>Verified sales</span></div></div></>}
