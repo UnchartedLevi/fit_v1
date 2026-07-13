@@ -1,3 +1,7 @@
+body {
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+}
+
 .hero {
   display: block;
   position: relative;
@@ -5,12 +9,76 @@
 
 .hero-copy {
   width: 52%;
+  max-width: 740px;
 }
 
 .hero-copy .button {
   position: relative;
   z-index: 5;
   pointer-events: auto;
+}
+
+.hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero .eyebrow::before {
+  content: "";
+  width: 34px;
+  height: 1px;
+  background: #cb6ce7;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-actions .button {
+  border-radius: 999px;
+}
+
+.ghost-button {
+  border-color: rgba(255, 255, 255, 0.42);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.ghost-button:hover {
+  border-color: #cb6ce7;
+  color: #cb6ce7;
+}
+
+.hero-quick-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  position: relative;
+  z-index: 5;
+}
+
+.hero-quick-links a {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 9px 13px;
+  text-transform: uppercase;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.hero-quick-links a:hover {
+  background: #cb6ce7;
+  border-color: #cb6ce7;
+  color: #080808;
 }
 
 .hero > .hero-scene {
@@ -24,17 +92,91 @@
   pointer-events: none;
 }
 
-.hero > .hero-scene .hero-scene-label strong {
+.hero > .hero-scene .hero-scene-label img {
+  width: min(34vw, 420px);
+  height: auto;
+  filter: drop-shadow(0 18px 42px rgba(0, 0, 0, 0.55));
+}
+
+.hero > .hero-scene .hero-scene-label img {
   transform: translateX(25vw);
 }
 
 @media (max-width: 800px) {
-  .hero-copy {
-    width: 100%;
+  .hero {
+    min-height: calc(100svh - 66px);
+    padding: 56px 20px 390px;
   }
 
-  .hero > .hero-scene .hero-scene-label strong {
+  .hero-copy {
+    width: 100%;
+    max-width: 430px;
+  }
+
+  .hero h1 {
+    font-size: clamp(60px, 18vw, 82px);
+    margin: 30px 0 24px;
+  }
+
+  .hero-copy p {
+    max-width: 320px;
+    margin-bottom: 26px;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .hero-copy .button {
+    min-height: 54px;
+  }
+
+  .hero-actions {
+    align-items: stretch;
+  }
+
+  .hero-actions .button {
+    justify-content: space-between;
+  }
+
+  .hero-quick-links {
+    margin-top: 18px;
+  }
+
+  .hero > .hero-scene .hero-scene-label img {
+    width: min(72vw, 320px);
     transform: none;
+    position: absolute;
+    bottom: 78px;
+  }
+
+  .hero > .hero-scene .hero-scene-label > span {
+    top: auto;
+    right: 20px;
+    bottom: 24px;
+  }
+
+  .hero > .hero-scene .hero-scene-scan {
+    inset: auto 7% 28px;
+    height: 330px;
+  }
+}
+
+@media (max-width: 360px) {
+  .hero {
+    padding-inline: 16px;
+    padding-bottom: 360px;
+  }
+
+  .hero h1 {
+    font-size: clamp(54px, 18.5vw, 66px);
+  }
+
+  .hero-actions .button {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .hero > .hero-scene .hero-scene-label img {
+    bottom: 68px;
   }
 }
 
@@ -64,4 +206,85 @@
   .ticker-track {
     animation-play-state: paused;
   }
+}
+
+
+.hero-picture-stack {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-picture {
+  position: absolute;
+  width: clamp(92px, 12vw, 170px);
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 22px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 24px 80px rgba(0,0,0,.38);
+  opacity: .34;
+  transform: rotate(var(--tilt));
+}
+
+.hero-picture-one { --tilt: -10deg; right: 30%; top: 13%; background-image: url('/stock/football-portrait.jpg'); }
+.hero-picture-two { --tilt: 7deg; right: 13%; top: 22%; background-image: url('/stock/jersey-man.jpg'); }
+.hero-picture-three { --tilt: -4deg; right: 37%; bottom: 12%; background-image: url('/stock/football-style.jpg'); }
+.hero-picture-four { --tilt: 11deg; right: 6%; bottom: 18%; background-image: url('/stock/jersey-detail.jpg'); }
+.hero-picture-five { --tilt: 3deg; right: 22%; bottom: 6%; background-image: url('/stock/streetwear-jersey.jpg'); }
+
+.category-grid a {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.category-grid a:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  opacity: .38;
+  transform: scale(1.04);
+  transition: opacity .3s ease, transform .3s ease;
+}
+
+.category-grid a:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(0,0,0,.1), rgba(0,0,0,.84));
+  transition: background .3s ease;
+}
+
+.category-grid a:nth-child(1):before { background-image: url('/stock/jersey-man.jpg'); }
+.category-grid a:nth-child(2):before { background-image: url('/stock/football-style.jpg'); }
+.category-grid a:nth-child(3):before { background-image: url('/stock/jersey-detail.jpg'); }
+
+.category-grid a:hover:before {
+  opacity: .62;
+  transform: scale(1.09);
+}
+
+.category-grid a:hover:after {
+  background: linear-gradient(180deg, rgba(203,108,231,.18), rgba(203,108,231,.88));
+}
+
+@media (max-width: 800px) {
+  .hero-picture {
+    width: clamp(74px, 22vw, 118px);
+    opacity: .27;
+  }
+
+  .hero-picture-one { right: 58%; top: auto; bottom: 210px; }
+  .hero-picture-two { right: 13%; top: auto; bottom: 250px; }
+  .hero-picture-three { right: 48%; bottom: 78px; }
+  .hero-picture-four { right: 7%; bottom: 90px; }
+  .hero-picture-five { right: 28%; bottom: 160px; }
 }

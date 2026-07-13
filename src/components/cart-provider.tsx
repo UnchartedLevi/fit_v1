@@ -7,8 +7,9 @@ type CartContextValue={items:CartItem[];count:number;subtotal:number;add:(p:Prod
 const CartContext=createContext<CartContextValue|null>(null);
 export function CartProvider({children}:{children:React.ReactNode}){
  const [items,setItems]=useState<CartItem[]>([]);
- useEffect(()=>{const timer=setTimeout(()=>{try{setItems(JSON.parse(localStorage.getItem("fits-cart")||"[]"))}catch{}},0);return()=>clearTimeout(timer)},[]);
- useEffect(()=>{localStorage.setItem("fits-cart",JSON.stringify(items))},[items]);
+ const [ready,setReady]=useState(false);
+ useEffect(()=>{const timer=window.setTimeout(()=>{try{setItems(JSON.parse(localStorage.getItem("fits-cart")||"[]"))}catch{setItems([])}finally{setReady(true)}},0);return()=>window.clearTimeout(timer)},[]);
+ useEffect(()=>{if(ready)localStorage.setItem("fits-cart",JSON.stringify(items))},[items,ready]);
  const value=useMemo(()=>({items,count:items.reduce((a,x)=>a+x.quantity,0),subtotal:items.reduce((a,x)=>a+x.quantity*x.product.price,0),
  add:(product:Product,size:string,quantity=1)=>{setItems(cur=>{const found=cur.find(x=>x.product.id===product.id&&x.size===size);return found?cur.map(x=>x===found?{...x,quantity:Math.min(product.stock_quantity,x.quantity+quantity)}:x):[...cur,{product,size,quantity}]});toast.success("Added to bag")},
  update:(id:string,size:string,q:number)=>setItems(cur=>cur.map(x=>x.product.id===id&&x.size===size?{...x,quantity:Math.max(1,Math.min(x.product.stock_quantity,q))}:x)),
