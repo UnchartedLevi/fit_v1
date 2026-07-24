@@ -9,7 +9,7 @@ import { useCart } from "./cart-provider";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const { count } = useCart();
 
   const checkAdmin = useCallback(async () => {
@@ -21,14 +21,22 @@ export function SiteHeader() {
 
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (userError || !user) {
       setIsAdmin(false);
       return;
     }
 
-    const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    const { data, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+
+    if (error) {
+      console.error("Unable to resolve the current user's role", error);
+      setIsAdmin(false);
+      return;
+    }
+
     setIsAdmin(data?.role === "admin");
   }, []);
 
@@ -56,7 +64,7 @@ export function SiteHeader() {
         <Link className="nav-wordmark" href="/products">Shop</Link>
         <Link className="nav-spotlight" href="/spotlight"><span>Sport</span><span>light</span></Link>
         <Link className="nav-wordmark" href="/about">Our Journey</Link>
-        {isAdmin ? <Link className="admin-portal-button" href="/admin">Admin portal</Link> : null}
+        {isAdmin === true ? <Link className="admin-portal-button" href="/admin">Admin portal</Link> : null}
       </nav>
       <div className="header-actions">
         <Link href="/products" aria-label="Search"><Search /></Link>
