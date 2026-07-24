@@ -1,6 +1,4 @@
 ﻿import { createClient } from "@/lib/supabase/server";
-import { Product } from "@/lib/types";
-import { demoProducts } from "@/lib/products";
 import { ProductRecord, StoreProduct } from "@/lib/commerce-types";
 
 type ProductQuery = {
@@ -42,25 +40,9 @@ function mapRecordToProduct(record: ProductRecord): StoreProduct {
   };
 }
 
-function filterFallbackProducts(products: Product[], query: ProductQuery) {
-  const search = query.q?.trim().toLowerCase();
-  return products
-    .filter((product) => !query.category || product.category === query.category)
-    .filter((product) => !query.size || product.sizes.includes(query.size))
-    .filter((product) => {
-      if (!search) return true;
-      return [product.name, product.description, product.category].some((value) => value.toLowerCase().includes(search));
-    })
-    .sort((a, b) => {
-      if (query.sort === "low") return a.price - b.price;
-      if (query.sort === "high") return b.price - a.price;
-      return Number(b.id) - Number(a.id);
-    });
-}
-
 export async function listProducts(query: ProductQuery = {}): Promise<StoreProduct[]> {
   const supabase = await createClient();
-  if (!supabase) return filterFallbackProducts(demoProducts, query) as StoreProduct[];
+  if (!supabase) return [];
 
   let request = supabase
     .from("products")
@@ -79,8 +61,8 @@ export async function listProducts(query: ProductQuery = {}): Promise<StoreProdu
   else if (query.sort === "high") request = request.order("base_price", { ascending: false });
   else request = request.order("created_at", { ascending: false });
 
-  const { data, error } = await request.limit(60);
-  if (error || !data) return filterFallbackProducts(demoProducts, query) as StoreProduct[];
+  const { data, error } = await request.limit(100);
+  if (error || !data) return [];
 
   let products = (data as ProductRecord[]).map(mapRecordToProduct);
   if (query.category) products = products.filter((product) => product.categorySlug === query.category || product.category === query.category);
@@ -91,9 +73,7 @@ export async function listProducts(query: ProductQuery = {}): Promise<StoreProdu
 
 export async function getProductBySlug(slug: string): Promise<StoreProduct | null> {
   const supabase = await createClient();
-  if (!supabase) {
-    return (demoProducts.find((product) => product.slug === slug) as StoreProduct | undefined) ?? null;
-  }
+  if (!supabase) return null;
 
   const { data, error } = await supabase
     .from("products")
@@ -109,16 +89,14 @@ export async function getProductBySlug(slug: string): Promise<StoreProduct | nul
     .eq("status", "active")
     .single();
 
-  if (error || !data) {
-    return (demoProducts.find((product) => product.slug === slug) as StoreProduct | undefined) ?? null;
-  }
+  if (error || !data) return null;
 
   return mapRecordToProduct(data as ProductRecord);
 }
 
 export async function listCategories() {
   const supabase = await createClient();
-  if (!supabase) return [...new Set(demoProducts.map((product) => product.category))].map((name) => ({ name, slug: name }));
+  if (!supabase) return [];
 
   const { data, error } = await supabase
     .from("categories")
@@ -126,10 +104,6 @@ export async function listCategories() {
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
-  if (error || !data?.length) {
-    return [...new Set(demoProducts.map((product) => product.category))].map((name) => ({ name, slug: name }));
-  }
-
+  if (error || !data) return [];
   return data;
 }
-

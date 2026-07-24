@@ -230,11 +230,11 @@ body {
   transform: rotate(var(--tilt));
 }
 
-.hero-picture-one { --tilt: -10deg; right: 30%; top: 13%; background-image: url('/stock/football-portrait.jpg'); }
-.hero-picture-two { --tilt: 7deg; right: 13%; top: 22%; background-image: url('/stock/jersey-man.jpg'); }
-.hero-picture-three { --tilt: -4deg; right: 37%; bottom: 12%; background-image: url('/stock/football-style.jpg'); }
-.hero-picture-four { --tilt: 11deg; right: 6%; bottom: 18%; background-image: url('/stock/jersey-detail.jpg'); }
-.hero-picture-five { --tilt: 3deg; right: 22%; bottom: 6%; background-image: url('/stock/streetwear-jersey.jpg'); }
+.hero-picture-one { --tilt: -10deg; right: 30%; top: 13%; background-image: url('/hero/fits-hero-1.jpg'); }
+.hero-picture-two { --tilt: 7deg; right: 13%; top: 22%; background-image: url('/hero/fits-hero-2.jpg'); }
+.hero-picture-three { --tilt: -4deg; right: 37%; bottom: 12%; background-image: url('/hero/fits-hero-3.jpg'); }
+.hero-picture-four { --tilt: 11deg; right: 6%; bottom: 18%; background-image: url('/hero/fits-hero-4.jpg'); }
+.hero-picture-five { --tilt: 3deg; right: 22%; bottom: 6%; background-image: url('/hero/fits-hero-5.jpg'); }
 
 .category-grid a {
   position: relative;
@@ -263,9 +263,9 @@ body {
   transition: background .3s ease;
 }
 
-.category-grid a:nth-child(1):before { background-image: url('/stock/jersey-man.jpg'); }
-.category-grid a:nth-child(2):before { background-image: url('/stock/football-style.jpg'); }
-.category-grid a:nth-child(3):before { background-image: url('/stock/jersey-detail.jpg'); }
+.category-grid a:nth-child(1):before { background-image: url('/hero/fits-hero-2.jpg'); }
+.category-grid a:nth-child(2):before { background-image: url('/hero/fits-hero-3.jpg'); }
+.category-grid a:nth-child(3):before { background-image: url('/hero/fits-hero-4.jpg'); }
 
 .category-grid a:hover:before {
   opacity: .62;

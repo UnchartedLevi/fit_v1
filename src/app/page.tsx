@@ -55,7 +55,7 @@ export default async function Home() {
       <section className="spotlights" id="spotlights">
         <div className="spotlights-head">
           <div className="spotlight-wordmark" aria-label="Spotlight">
-            <span>Spot</span>
+            <span>Sport</span>
             <span>light</span>
           </div>
           <h2>

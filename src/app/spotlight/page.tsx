@@ -13,7 +13,7 @@ export default async function SpotlightPage() {
         <div>
           <span className="eyebrow">FITS NEWSLETTER / SPOTLIGHT</span>
           <div className="spotlight-wordmark spotlight-wordmark-large" aria-label="Spotlight">
-            <span>Spot</span>
+            <span>Sport</span>
             <span>light</span>
           </div>
           <h1>

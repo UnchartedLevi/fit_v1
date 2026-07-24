@@ -1,1 +1,15 @@
-import { AuthForm } from "@/components/auth-form"; export default function Login(){return <div className="page-shell"><AuthForm mode="login"/></div>}
+import { AuthForm } from "@/components/auth-form";
+
+export default async function Login({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const params = await searchParams;
+
+  return (
+    <div className="page-shell">
+      <AuthForm mode="login" next={params.next ?? "/"} />
+    </div>
+  );
+}

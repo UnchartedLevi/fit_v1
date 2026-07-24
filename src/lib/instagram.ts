@@ -41,7 +41,8 @@ const fallbackSpotlights: InstagramSpotlight[] = [
 ];
 
 function titleFromCaption(caption = "FITS spotlight") {
-  const firstLine = caption.split("\n").find(Boolean)?.trim() || "FITS spotlight";
+  const firstLine =
+    caption.split("\n").find(Boolean)?.trim() || "FITS spotlight";
   return firstLine.replace(/#\S+/g, "").trim().slice(0, 58) || "FITS spotlight";
 }
 
@@ -60,14 +61,17 @@ function dateFromTimestamp(timestamp?: string) {
   }).format(new Date(timestamp));
 }
 
-export async function getInstagramSpotlights(limit = 4): Promise<InstagramSpotlight[]> {
+export async function getInstagramSpotlights(
+  limit = 4,
+): Promise<InstagramSpotlight[]> {
   const userId = process.env.INSTAGRAM_USER_ID;
   const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
   const version = process.env.INSTAGRAM_GRAPH_API_VERSION || "v23.0";
 
   if (!userId || !accessToken) return fallbackSpotlights;
 
-  const fields = "id,caption,media_type,media_url,permalink,thumbnail_url,timestamp";
+  const fields =
+    "id,caption,media_type,media_url,permalink,thumbnail_url,timestamp";
   const url = new URL(`https://graph.facebook.com/${version}/${userId}/media`);
   url.searchParams.set("fields", fields);
   url.searchParams.set("limit", String(limit));
