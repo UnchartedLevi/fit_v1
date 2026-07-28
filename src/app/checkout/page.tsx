@@ -5,21 +5,19 @@ import { useCart } from "@/components/cart-provider";
 import { money } from "@/lib/products";
 import { toast } from "sonner";
 
-const halls = ["Peter", "Joshua", "Joseph", "Daniel", "Paul", "John"] as const;
 const CHECKOUT_DETAILS_KEY = "fits-checkout-details";
 
 type CheckoutDetails = {
   name: string;
   email: string;
   phone: string;
-  hall: string;
-  room: string;
+  address: string;
 };
 
 export default function Checkout() {
   const { items, subtotal } = useCart();
   const [busy, setBusy] = useState(false);
-  const [details, setDetails] = useState<CheckoutDetails>({ name: "", email: "", phone: "", hall: "", room: "" });
+  const [details, setDetails] = useState<CheckoutDetails>({ name: "", email: "", phone: "", address: "" });
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -72,8 +70,11 @@ export default function Checkout() {
             <label className="field"><span>Full name</span><input name="name" required value={details.name} onChange={(event) => updateDetails("name", event.target.value)} /></label>
             <label className="field"><span>Email</span><input type="email" name="email" required value={details.email} onChange={(event) => updateDetails("email", event.target.value)} /></label>
             <label className="field"><span>Phone</span><input name="phone" required value={details.phone} onChange={(event) => updateDetails("phone", event.target.value)} /></label>
-            <label className="field"><span>Hall of residence</span><select name="hall" required value={details.hall} onChange={(event) => updateDetails("hall", event.target.value)}><option value="" disabled>Select your hall</option>{halls.map((hall) => <option key={hall} value={hall}>{hall}</option>)}</select></label>
-            <label className="field"><span>Room number</span><input name="room" pattern="[A-Za-z][0-9]{3}" title="Format: A123" placeholder="A123" required value={details.room} onChange={(event) => updateDetails("room", event.target.value.toUpperCase())} /></label>
+            <label className="field full">
+              <span>Delivery address</span>
+              <textarea name="address" required minLength={8} rows={4} placeholder="Covenant students: type your hall and room number, e.g. Daniel Hall, Room A123" value={details.address} onChange={(event) => updateDetails("address", event.target.value)} />
+              <small>Covenant students should include hall and room number. Example: Peter Hall, Room B205.</small>
+            </label>
           </div>
           <button disabled={busy || !items.length} className="add-button" style={{ marginTop: 25 }}>{busy ? "Preparing payment..." : `Pay ${money(subtotal)} with Paystack`}</button>
           <p className="checkout-note secondary">Want order history later? <Link href="/auth/signup">Create an account</Link> after checkout or sign in before your next order.</p>

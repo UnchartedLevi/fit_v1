@@ -9,8 +9,7 @@ const Body = z.object({
     name: z.string().min(2),
     email: z.string().email(),
     phone: z.string().min(7),
-    hall: z.enum(["Peter", "Joshua", "Joseph", "Daniel", "Paul", "John"]),
-    room: z.string().regex(/^[A-Za-z][0-9]{3}$/, "Room number must be one letter followed by three digits"),
+    address: z.string().min(8, "Enter your delivery address"),
   }),
   items: z
     .array(
@@ -100,11 +99,11 @@ export async function POST(req: Request) {
     const deliverySnapshot = {
       recipient_name: body.customer.name,
       phone: body.customer.phone,
-      address_line_1: `Hall: ${body.customer.hall}, Room: ${body.customer.room.toUpperCase()}`,
+      address_line_1: body.customer.address.trim(),
       city: "Ota",
       state: "Ogun",
       country: "Nigeria",
-      delivery_instructions: "Covenant University campus delivery",
+      delivery_instructions: "Covenant University campus delivery where applicable",
     };
 
     const { data: order, error: orderError } = await supabase

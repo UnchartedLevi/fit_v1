@@ -524,6 +524,11 @@ footer small {
 .field.full {
   grid-column: 1/-1;
 }
+.field small {
+  color: #777;
+  font-size: 12px;
+  line-height: 1.5;
+}
 .summary {
   background: #e8e7e1;
   padding: 30px;
