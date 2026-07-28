@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: { type: "website", locale: "en_NG", url: "/", siteName: "FITS", title: "FITS — Made for the game", description, images: [{ url: "/hero/fits-hero-1.jpg", width: 1200, height: 630, alt: "FITS sportswear" }] },
   twitter: { card: "summary_large_image", title: "FITS — Made for the game", description, images: ["/hero/fits-hero-1.jpg"] },
+  icons: { icon: [{ url: "/icon.png", type: "image/png" }], shortcut: "/favicon.ico", apple: "/icon.png" },
   robots: { index: true, follow: true },
 };
 
