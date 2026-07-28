@@ -43,7 +43,6 @@ export default async function SpotlightPage() {
           rel="noreferrer"
           style={featured.image ? { backgroundImage: `url(${featured.image})` } : undefined}
         >
-          <span>{featured.number}</span>
           <div>
             <small>Featured Instagram dispatch / {featured.date ?? "Latest"}</small>
             <h2>{featured.title}</h2>
@@ -63,7 +62,6 @@ export default async function SpotlightPage() {
             key={post.id}
             style={post.image ? { backgroundImage: `url(${post.image})` } : undefined}
           >
-            <span>{post.number}</span>
             <div>
               <small>{post.date ?? "Latest"} / Instagram</small>
               <h2>{post.title}</h2>

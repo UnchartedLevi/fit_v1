@@ -7,6 +7,8 @@ import { getInstagramSpotlights } from "@/lib/instagram";
 
 export default async function Home() {
   const spotlights = await getInstagramSpotlights();
+  const tickerMessage = "NEW SEASON  FITS FOR LIFE  COVENANT UNIVERSITY  BUILT FOR THE GAME";
+  const tickerItems = Array.from({ length: 4 });
 
   return (
     <>
@@ -18,9 +20,9 @@ export default async function Home() {
             <br />
             THE
             <br />
-            WALK-IN.
+            WALK IN.
           </h1>
-          <p>Campus-ready football pieces made for the tunnel, the stands, and every move after class.</p>
+          <p>Campus ready football pieces made for the tunnel, the stands, and every move after class.</p>
           <div className="hero-actions">
             <Link className="button light-button" href="/products">
               Shop the collection <ArrowRight />
@@ -47,8 +49,12 @@ export default async function Home() {
 
       <section className="ticker" aria-label="FITS announcements">
         <div className="ticker-track">
-          <span>NEW SEASON &nbsp;—&nbsp; FITS FOR LIFE &nbsp;—&nbsp; COVENANT UNIVERSITY &nbsp;—&nbsp; BUILT FOR THE GAME &nbsp;—&nbsp;</span>
-          <span aria-hidden="true">NEW SEASON &nbsp;—&nbsp; FITS FOR LIFE &nbsp;—&nbsp; COVENANT UNIVERSITY &nbsp;—&nbsp; BUILT FOR THE GAME &nbsp;—&nbsp;</span>
+          <div className="ticker-group">
+            {tickerItems.map((_, index) => <span key={index}>{tickerMessage}</span>)}
+          </div>
+          <div className="ticker-group" aria-hidden="true">
+            {tickerItems.map((_, index) => <span key={index}>{tickerMessage}</span>)}
+          </div>
         </div>
       </section>
 
@@ -72,10 +78,9 @@ export default async function Home() {
               href={spotlight.href}
               target="_blank"
               rel="noreferrer"
-              key={spotlight.number}
+              key={spotlight.id}
               style={spotlight.image ? { backgroundImage: `url(${spotlight.image})` } : undefined}
             >
-              <span>{spotlight.number}</span>
               <div>
                 <small>{spotlight.date ?? "Latest"} / Instagram</small>
                 <h3>{spotlight.title}</h3>
@@ -108,17 +113,14 @@ export default async function Home() {
 
       <section className="category-grid">
         <Link href="/products?category=Jerseys">
-          <span>01</span>
           <h3>JERSEYS</h3>
-          <p>On-pitch energy, off-pitch fit.</p>
+          <p>On pitch energy, off pitch fit.</p>
         </Link>
         <Link href="/products?category=Sets">
-          <span>02</span>
           <h3>SETS</h3>
           <p>Complete looks. Zero compromise.</p>
         </Link>
         <Link href="/products?category=Accessories">
-          <span>03</span>
           <h3>ACCESSORIES</h3>
           <p>The finishing details.</p>
         </Link>

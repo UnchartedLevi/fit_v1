@@ -1,6 +1,5 @@
 export type InstagramSpotlight = {
   id: string;
-  number: string;
   title: string;
   text: string;
   href: string;
@@ -26,14 +25,12 @@ type InstagramMediaResponse = {
 const fallbackSpotlights: InstagramSpotlight[] = [
   {
     id: "fallback-1",
-    number: "01",
     title: "Matchday uniform",
     text: "A closer look at the pieces built for the walk-in, the stands, and the streets after full time.",
     href: "https://www.instagram.com/fits4l/",
   },
   {
     id: "fallback-2",
-    number: "02",
     title: "FITS for life",
     text: "Campaign moments, styling notes, and the culture around the next drop.",
     href: "https://www.instagram.com/fits4l/",
@@ -88,9 +85,8 @@ export async function getInstagramSpotlights(
 
     return posts
       .filter((post) => post.permalink)
-      .map((post, index) => ({
+      .map((post) => ({
         id: post.id,
-        number: String(index + 1).padStart(2, "0"),
         title: titleFromCaption(post.caption),
         text: textFromCaption(post.caption),
         href: post.permalink || "https://www.instagram.com/fits4l/",
