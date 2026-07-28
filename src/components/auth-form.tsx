@@ -19,7 +19,7 @@ export function AuthForm({ mode, next = "/" }: { mode: "login" | "signup"; next?
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email"));
     const password = String(form.get("password"));
-    const redirectTo = `${window.location.origin}/auth/login`;
+    const redirectTo = `${window.location.origin}/auth/callback`;
     const { error } =
       mode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
@@ -30,7 +30,16 @@ export function AuthForm({ mode, next = "/" }: { mode: "login" | "signup"; next?
           });
 
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes("rate limit")) {
+        return toast.error("Email delivery is temporarily limited. Please wait before trying again and use only the newest confirmation email.");
+      }
+      if (message.includes("email not confirmed")) {
+        return toast.error("This account exists but is not confirmed. Open the newest confirmation email once it arrives.");
+      }
+      return toast.error(error.message);
+    }
 
     toast.success(mode === "login" ? "Welcome back" : "Check your email to confirm your account");
     router.push(mode === "login" ? next : "/auth/login");
