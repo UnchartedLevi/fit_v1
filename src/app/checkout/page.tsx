@@ -72,8 +72,8 @@ export default function Checkout() {
             <label className="field"><span>Phone</span><input name="phone" required value={details.phone} onChange={(event) => updateDetails("phone", event.target.value)} /></label>
             <label className="field full">
               <span>Delivery address</span>
-              <textarea name="address" required minLength={8} rows={4} placeholder="Covenant students: type your hall and room number, e.g. Daniel Hall, Room A123" value={details.address} onChange={(event) => updateDetails("address", event.target.value)} />
-              <small>Covenant students should include hall and room number. Example: Peter Hall, Room B205.</small>
+              <textarea name="address" required minLength={8} rows={4} placeholder="Input Address" value={details.address} onChange={(event) => updateDetails("address", event.target.value)} />
+              <small> <b>Note:</b> Covenant students should include hall and room number. Example: Peter Hall, Room B205.</small>
             </label>
           </div>
           <button disabled={busy || !items.length} className="add-button" style={{ marginTop: 25 }}>{busy ? "Preparing payment..." : `Pay ${money(subtotal)} with Paystack`}</button>
