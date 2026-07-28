@@ -309,9 +309,9 @@
   transition: background .3s ease;
 }
 
-.category-grid a:nth-child(1):before { background-image: url('/hero/fits-hero-2.jpg'); }
-.category-grid a:nth-child(2):before { background-image: url('/hero/fits-hero-3.jpg'); }
-.category-grid a:nth-child(3):before { background-image: url('/hero/fits-hero-4.jpg'); }
+.category-grid a:nth-child(1):before { background-image: url('/category/jerseys.jpg'); background-position: center 38%; }
+.category-grid a:nth-child(2):before { background-image: url('/category/sets.jpg'); background-position: center 46%; }
+.category-grid a:nth-child(3):before { background-image: url('/category/accessories.jpg'); background-position: center 42%; }
 
 .category-grid a:hover:before {
   opacity: .62;
