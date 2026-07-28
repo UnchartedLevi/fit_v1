@@ -20,18 +20,18 @@ https://fit-v1.vercel.app/auth/callback
 
 ## Custom-domain phase
 
-After the Namecheap domain is connected and HTTPS is active, change both Vercel variables to the canonical production URL and update Supabase in the same release:
+After `fits4l.xyz` is connected in Vercel and HTTPS is active, change both Vercel variables to the canonical production URL and update Supabase in the same release:
 
 ```env
-NEXT_PUBLIC_APP_URL=https://your-domain.com
-APP_URL=https://your-domain.com
+NEXT_PUBLIC_APP_URL=https://fits4l.xyz
+APP_URL=https://fits4l.xyz
 ```
 
-Then set the Supabase Site URL to `https://your-domain.com` and add:
+Then set the Supabase Site URL to `https://fits4l.xyz` and add:
 
 ```text
-https://your-domain.com/auth/callback
-https://www.your-domain.com/auth/callback
+https://fits4l.xyz/auth/callback
+https://www.fits4l.xyz/auth/callback
 ```
 
 Keep the localhost callback in the allow list for development. Do not include credentials or secret keys in either URL variable.
