@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     const body = Body.parse(await req.json());
     const session = await createClient();
     const supabase = createAdminClient();
-    if (!session || !supabase) throw new Error("Supabase is not configured yet.");
+    if (!supabase) throw new Error("Supabase is not configured yet.");
 
     const productIds = [...new Set(body.items.map((item) => item.product_id))];
     const { data, error } = await supabase
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
     const {
       data: { user },
-    } = await session.auth.getUser();
+    } = session ? await session.auth.getUser() : { data: { user: null } };
 
     const { data: orderNumber, error: numberError } = await supabase.rpc("generate_order_number");
     if (numberError || !orderNumber) throw new Error("Could not generate an order number.");
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
         currency: "NGN",
         reference,
         callback_url: `${origin}/checkout/callback`,
-        metadata: { order_id: order.id, order_number: orderNumber },
+        metadata: { order_id: order.id, order_number: orderNumber, customer_name: body.customer.name },
       }),
     });
 

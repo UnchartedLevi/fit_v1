@@ -495,6 +495,21 @@ footer small {
   grid-template-columns: 1fr 0.7fr;
   gap: 7vw;
 }
+.checkout-note {
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 24px;
+  max-width: 620px;
+}
+.checkout-note.secondary {
+  font-size: 13px;
+  margin-top: 16px;
+}
+.checkout-note a {
+  color: #111;
+  font-weight: 800;
+  text-decoration: underline;
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
