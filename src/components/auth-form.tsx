@@ -19,7 +19,8 @@ export function AuthForm({ mode, next = "/" }: { mode: "login" | "signup"; next?
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email"));
     const password = String(form.get("password"));
-    const redirectTo = `${window.location.origin}/auth/callback`;
+    const redirectBase = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin).replace(/\/$/, "");
+    const redirectTo = `${redirectBase}/auth/callback`;
     const { error } =
       mode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
