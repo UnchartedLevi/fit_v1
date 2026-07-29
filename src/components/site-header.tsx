@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
+import { LogOut, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "./cart-provider";
@@ -10,12 +10,14 @@ import { useCart } from "./cart-provider";
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const { count } = useCart();
 
-  const checkAdmin = useCallback(async () => {
+  const checkSession = useCallback(async () => {
     const supabase = createClient();
     if (!supabase) {
       setIsAdmin(false);
+      setEmail(null);
       return;
     }
 
@@ -26,9 +28,11 @@ export function SiteHeader() {
 
     if (userError || !user) {
       setIsAdmin(false);
+      setEmail(null);
       return;
     }
 
+    setEmail(user.email ?? null);
     const { data, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
 
     if (error) {
@@ -40,20 +44,28 @@ export function SiteHeader() {
     setIsAdmin(data?.role === "admin");
   }, []);
 
+  const logout = async () => {
+    const supabase = createClient();
+    await supabase?.auth.signOut();
+    setEmail(null);
+    setIsAdmin(false);
+    window.location.href = "/";
+  };
+
   useEffect(() => {
     const supabase = createClient();
     const timer = window.setTimeout(() => {
-      void checkAdmin();
+      void checkSession();
     }, 0);
     const subscription = supabase?.auth.onAuthStateChange(() => {
-      void checkAdmin();
+      void checkSession();
     }).data.subscription;
 
     return () => {
       window.clearTimeout(timer);
       subscription?.unsubscribe();
     };
-  }, [checkAdmin]);
+  }, [checkSession]);
 
   return (
     <header className="site-header">
@@ -68,7 +80,14 @@ export function SiteHeader() {
       </nav>
       <div className="header-actions">
         <Link href="/products" aria-label="Search"><Search /></Link>
-        <Link href="/auth/login" aria-label="Account"><UserRound /></Link>
+        {email ? (
+          <>
+            <Link href="/auth/login" className="account-initial" aria-label={`Signed in as ${email}`}>{email[0]?.toUpperCase()}</Link>
+            <button className="logout-button" type="button" onClick={logout} aria-label="Log out"><LogOut /></button>
+          </>
+        ) : (
+          <Link href="/auth/login" aria-label="Account"><UserRound /></Link>
+        )}
         <Link href="/cart" className="bag" aria-label={`Bag, ${count} items`}><ShoppingBag /><b>{count}</b></Link>
         <button onClick={() => setOpen(!open)} className="menu" aria-label="Menu">{open ? <X /> : <Menu />}</button>
       </div>

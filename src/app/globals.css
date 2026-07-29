@@ -91,6 +91,33 @@ button {
 .header-actions svg {
   width: 19px;
 }
+.account-initial,
+.logout-button {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  justify-content: center;
+}
+.account-initial {
+  background: #111;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  height: 28px;
+  text-transform: uppercase;
+  width: 28px;
+}
+.logout-button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: #111;
+  height: 30px;
+  padding: 0;
+  width: 30px;
+}
+.logout-button svg {
+  width: 16px;
+}
 .bag {
   position: relative;
 }
@@ -383,6 +410,37 @@ footer small {
   gap: 12px;
   margin-bottom: 35px;
   flex-wrap: wrap;
+}
+.product-count {
+  color: #666;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin: -14px 0 24px;
+  text-transform: uppercase;
+}
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 38px;
+}
+.pagination button {
+  background: transparent;
+  border: 1px solid #bbb;
+  border-radius: 999px;
+  min-width: 38px;
+  padding: 10px 14px;
+}
+.pagination button.active {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 .filters select,
 .field input,
@@ -929,6 +987,38 @@ th {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.admin-editor-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+.admin-editor-toolbar p {
+  color: #666;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.cloudinary-status {
+  border: 1px solid #d7b56f;
+  border-radius: 999px;
+  color: #8a650c;
+  font-size: 11px;
+  font-weight: 850;
+  padding: 8px 12px;
+  text-transform: uppercase;
+}
+.cloudinary-status.ready {
+  border-color: #18b957;
+  color: #0f7c3d;
+}
+.admin-pagination {
+  justify-content: flex-start;
+  margin-top: 6px;
 }
 .admin-error {
   border: 1px solid #e7b0a8;

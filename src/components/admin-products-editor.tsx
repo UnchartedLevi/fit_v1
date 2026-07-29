@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { money } from "@/lib/products";
 import type { ProductImageRecord, ProductVariantRecord } from "@/lib/commerce-types";
 
+const ADMIN_PRODUCTS_PER_PAGE = 8;
+
 type CategoryOption = { id: string; name: string; slug: string };
 
 type AdminProduct = {
@@ -137,6 +139,8 @@ export function AdminProductsEditor() {
     const [draft, setDraft] = useState<AdminProduct>(() => blankDraft());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const cloudinaryConfigured = Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
 
     const loadProducts = useCallback(
         async () => {
@@ -172,6 +176,7 @@ export function AdminProductsEditor() {
 
             setCategories((categoryData ?? []) as CategoryOption[]);
             setProducts(((productData ?? []) as unknown as RawProduct[]).map(normalizeProduct));
+            setPage(1);
             setLoading(false);
         },
         [client],
@@ -366,11 +371,20 @@ export function AdminProductsEditor() {
     if (loading) return <div>Loading products…</div>;
     if (error) return <div className="admin-error">{error}</div>;
 
+    const totalPages = Math.max(1, Math.ceil(products.length / ADMIN_PRODUCTS_PER_PAGE));
+    const pagedProducts = products.slice((page - 1) * ADMIN_PRODUCTS_PER_PAGE, page * ADMIN_PRODUCTS_PER_PAGE);
+
     return (
         <div className="admin-editor">
             <datalist id="admin-categories">
                 {categories.map((category) => <option key={category.id} value={category.name} />)}
             </datalist>
+            <div className="admin-editor-toolbar">
+                <p>{products.length} products · Page {page} of {totalPages}</p>
+                <span className={cloudinaryConfigured ? "cloudinary-status ready" : "cloudinary-status"}>
+                    {cloudinaryConfigured ? "Cloudinary uploads enabled" : "Cloudinary upload preset missing"}
+                </span>
+            </div>
             <div className="table-wrap">
                 <table>
                     <thead>
@@ -385,12 +399,20 @@ export function AdminProductsEditor() {
                     </thead>
                     <tbody>
                         {renderEditorRow(draft, true)}
-                        {products.map((product) => renderEditorRow(product))}
+                        {pagedProducts.map((product) => renderEditorRow(product))}
                     </tbody>
                 </table>
             </div>
+            {totalPages > 1 ? (
+                <div className="pagination admin-pagination" aria-label="Admin product pagination">
+                    <button type="button" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Previous</button>
+                    {Array.from({ length: totalPages }, (_, index) => index + 1).map((item) => (
+                        <button key={item} type="button" className={item === page ? "active" : ""} onClick={() => setPage(item)} aria-current={item === page ? "page" : undefined}>{item}</button>
+                    ))}
+                    <button type="button" disabled={page === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>Next</button>
+                </div>
+            ) : null}
         </div>
     );
 }
-
 
