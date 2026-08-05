@@ -1,0 +1,62 @@
+FITS Paystack setup request
+
+Please send the following Paystack details for the FITS website integration.
+
+Use TEST MODE first. Do not send live keys until test checkout has been verified.
+
+Required keys from Paystack Dashboard > Settings > API Keys & Webhooks:
+
+1. Paystack Test Public Key
+   Example format:
+   pk_test_xxxxxxxxxxxxxxxxxxxxx
+
+2. Paystack Test Secret Key
+   Example format:
+   sk_test_xxxxxxxxxxxxxxxxxxxxx
+
+Later, when we are ready to launch payments publicly, we will also need:
+
+3. Paystack Live Public Key
+   Example format:
+   pk_live_xxxxxxxxxxxxxxxxxxxxx
+
+4. Paystack Live Secret Key
+   Example format:
+   sk_live_xxxxxxxxxxxxxxxxxxxxx
+
+Important security note:
+
+- The secret key must never be shared publicly.
+- The secret key must never be added to frontend/browser code.
+- The secret key should only be added to the server environment variables in Vercel.
+
+Website URLs to configure in Paystack:
+
+Production callback URL:
+https://fits4l.xyz/checkout/callback
+
+Production webhook URL:
+https://fits4l.xyz/api/paystack/verify
+
+Local development callback URL:
+http://localhost:3000/checkout/callback
+
+Environment variables we will add to Vercel:
+
+PAYSTACK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx
+APP_URL=https://fits4l.xyz
+NEXT_PUBLIC_APP_URL=https://fits4l.xyz
+
+Environment variables for local development:
+
+PAYSTACK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx
+APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+Please also confirm:
+
+1. Is the Paystack business fully activated?
+2. Is the account enabled to receive payments in Nigerian naira?
+3. Should customer payment receipts come from Paystack only for now, or should FITS also send its own order confirmation emails later?
