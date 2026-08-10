@@ -37,12 +37,12 @@ function escapeHtml(value: unknown) {
 }
 
 export async function sendOrderNotificationEmails(order: OrderWithItems) {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
   const vendorEmail = process.env.ORDER_NOTIFICATION_EMAIL;
 
   if (!apiKey || !fromEmail || !vendorEmail) {
-    console.warn("Order email skipped: SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, or ORDER_NOTIFICATION_EMAIL is missing.");
+    console.warn("Order email skipped: RESEND_API_KEY, RESEND_FROM_EMAIL, or ORDER_NOTIFICATION_EMAIL is missing.");
     return;
   }
 
@@ -91,19 +91,14 @@ export async function sendOrderNotificationEmails(order: OrderWithItems) {
   const text = `FITS Order Confirmed\n\nOrder: ${order.order_number}\nCustomer: ${customerName} <${order.customer_email}>\nPhone: ${order.customer_phone}\nDelivery address: ${deliveryAddress}\n\nItems:\n${textItems}\n\nTotal: ${order.total_amount.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })}\nReference: ${order.paystack_reference}`;
 
   const payload = {
-    personalizations: [
-      { to: [{ email: order.customer_email }] },
-      { to: [{ email: vendorEmail }] },
-    ],
-    from: { email: fromEmail, name: "FITS Store" },
+    from: `FITS Store <${fromEmail}>`,
+    to: [order.customer_email, vendorEmail],
     subject,
-    content: [
-      { type: "text/plain", value: text },
-      { type: "text/html", value: html },
-    ],
+    text,
+    html,
   };
 
-  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+  const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -114,6 +109,6 @@ export async function sendOrderNotificationEmails(order: OrderWithItems) {
 
   if (!response.ok) {
     const body = await response.text();
-    console.error("SendGrid email failed:", response.status, body);
+    console.error("Resend email failed:", response.status, body);
   }
 }
