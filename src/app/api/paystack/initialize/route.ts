@@ -50,10 +50,12 @@ export async function POST(req: Request) {
     const body = Body.parse(await req.json());
     const session = await createClient();
     const supabase = createAdminClient();
+    const productReader = session ?? supabase;
     if (!supabase) throw new Error("Supabase is not configured yet.");
+    if (!productReader) throw new Error("Supabase is not configured yet.");
 
     const productIds = [...new Set(body.items.map((item) => item.product_id))];
-    const { data: productData, error: productError } = await supabase
+    const { data: productData, error: productError } = await productReader
       .from("products")
       .select("id,name,base_price,currency,status")
       .in("id", productIds);
@@ -61,8 +63,8 @@ export async function POST(req: Request) {
     if (productError || !productData) throw new Error("Could not validate products.");
 
     const [{ data: imageData, error: imageError }, { data: variantData, error: variantError }] = await Promise.all([
-      supabase.from("product_images").select("*").in("product_id", productIds),
-      supabase.from("product_variants").select("*").in("product_id", productIds),
+      productReader.from("product_images").select("*").in("product_id", productIds),
+      productReader.from("product_variants").select("*").in("product_id", productIds),
     ]);
 
     if (imageError || variantError) throw new Error("Could not validate products.");
