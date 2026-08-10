@@ -42,6 +42,11 @@ type PaystackInitResponse = {
   };
 };
 
+function generateOrderNumber() {
+  const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  return `FITS-${date}-${crypto.randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase()}`;
+}
+
 export async function POST(req: Request) {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
@@ -105,9 +110,7 @@ export async function POST(req: Request) {
       data: { user },
     } = session ? await session.auth.getUser() : { data: { user: null } };
 
-    const { data: orderNumber, error: numberError } = await supabase.rpc("generate_order_number");
-    if (numberError || !orderNumber) throw new Error("Could not generate an order number.");
-
+    const orderNumber = generateOrderNumber();
     const reference = `${orderNumber}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const deliverySnapshot = {
       recipient_name: body.customer.name,
