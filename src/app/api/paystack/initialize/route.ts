@@ -47,6 +47,12 @@ function generateOrderNumber() {
   return `FITS-${date}-${crypto.randomUUID().replaceAll("-", "").slice(0, 6).toUpperCase()}`;
 }
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message;
+  return "Invalid request";
+}
+
 export async function POST(req: Request) {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
@@ -182,6 +188,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(json.data);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid request" }, { status: 400 });
+    console.error("Paystack initialization failed", error);
+    return NextResponse.json({ error: errorMessage(error) }, { status: 400 });
   }
 }
