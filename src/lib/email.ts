@@ -27,12 +27,24 @@ function getDeliveryAddress(order: OrderWithItems) {
   return String(order.delivery_address_snapshot.address_line_1 ?? "Covenant University, Ota, Ogun");
 }
 
+function escapeHtml(value: unknown) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 export async function sendOrderNotificationEmails(order: OrderWithItems) {
   const apiKey = process.env.SENDGRID_API_KEY;
   const fromEmail = process.env.SENDGRID_FROM_EMAIL;
   const vendorEmail = process.env.ORDER_NOTIFICATION_EMAIL;
 
-  if (!apiKey || !fromEmail || !vendorEmail) return;
+  if (!apiKey || !fromEmail || !vendorEmail) {
+    console.warn("Order email skipped: SENDGRID_API_KEY, SENDGRID_FROM_EMAIL, or ORDER_NOTIFICATION_EMAIL is missing.");
+    return;
+  }
 
   const customerName = getCustomerName(order);
   const deliveryAddress = getDeliveryAddress(order);
@@ -40,16 +52,16 @@ export async function sendOrderNotificationEmails(order: OrderWithItems) {
   const itemsHtml = (order.order_items ?? [])
     .map(
       (item) =>
-        `<tr><td>${item.quantity}</td><td>${item.product_name}</td><td>${item.variant_description ?? "Default"}</td><td>${item.unit_price.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })}</td><td>${item.line_total.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })}</td></tr>`,
+        `<tr><td>${item.quantity}</td><td>${escapeHtml(item.product_name)}</td><td>${escapeHtml(item.variant_description ?? "Default")}</td><td>${item.unit_price.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })}</td><td>${item.line_total.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })}</td></tr>`,
     )
     .join("");
 
   const html = `
     <div style="font-family: sans-serif; line-height: 1.5; color: #111;">
       <h2>FITS Order Confirmed</h2>
-      <p>Order <strong>${order.order_number}</strong> has been verified and marked paid.</p>
-      <p><strong>Customer:</strong> ${customerName} &ndash; ${order.customer_email} &ndash; ${order.customer_phone}</p>
-      <p><strong>Delivery address:</strong> ${deliveryAddress}</p>
+      <p>Order <strong>${escapeHtml(order.order_number)}</strong> has been verified and marked paid.</p>
+      <p><strong>Customer:</strong> ${escapeHtml(customerName)} &ndash; ${escapeHtml(order.customer_email)} &ndash; ${escapeHtml(order.customer_phone)}</p>
+      <p><strong>Delivery address:</strong> ${escapeHtml(deliveryAddress)}</p>
       <table style="border-collapse: collapse; width: 100%; margin-top: 16px;">
         <thead>
           <tr>
@@ -65,7 +77,7 @@ export async function sendOrderNotificationEmails(order: OrderWithItems) {
         </tbody>
       </table>
       <p style="margin-top: 16px;"><strong>Total:</strong> ${order.total_amount.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 })}</p>
-      <p>Reference: ${order.paystack_reference}</p>
+      <p>Reference: ${escapeHtml(order.paystack_reference)}</p>
     </div>
   `;
 
