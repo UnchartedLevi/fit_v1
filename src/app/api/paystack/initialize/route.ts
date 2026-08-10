@@ -53,14 +53,25 @@ export async function POST(req: Request) {
     if (!supabase) throw new Error("Supabase is not configured yet.");
 
     const productIds = [...new Set(body.items.map((item) => item.product_id))];
-    const { data, error } = await supabase
+    const { data: productData, error: productError } = await supabase
       .from("products")
-      .select("id,name,base_price,currency,status,product_images(*),product_variants(*)")
+      .select("id,name,base_price,currency,status")
       .in("id", productIds);
 
-    if (error || !data) throw new Error("Could not validate products.");
+    if (productError || !productData) throw new Error("Could not validate products.");
 
-    const products = data as unknown as CheckoutProduct[];
+    const [{ data: imageData, error: imageError }, { data: variantData, error: variantError }] = await Promise.all([
+      supabase.from("product_images").select("*").in("product_id", productIds),
+      supabase.from("product_variants").select("*").in("product_id", productIds),
+    ]);
+
+    if (imageError || variantError) throw new Error("Could not validate products.");
+
+    const products = (productData as unknown as CheckoutProduct[]).map((product) => ({
+      ...product,
+      product_images: ((imageData ?? []) as ProductImageRecord[]).filter((image) => image.product_id === product.id),
+      product_variants: ((variantData ?? []) as ProductVariantRecord[]).filter((variant) => variant.product_id === product.id),
+    }));
     let subtotal = 0;
     const orderItems = body.items.map((item) => {
       const product = products.find((candidate) => candidate.id === item.product_id);
