@@ -19,6 +19,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ verified: true, ...result });
   } catch (error) {
+    console.error("Paystack callback verification failed:", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "Verification failed" }, { status: 400 });
   }
 }
