@@ -118,8 +118,15 @@ export async function finalizeVerifiedPaystackPayment(params: {
   if (orderError || !orderData) throw new Error("Order not found for payment reference.");
 
   const order = orderData as unknown as VerifiedOrder;
-  if (params.amount !== order.total_amount * 100 || params.currency !== order.currency) {
-    throw new Error("Payment amount does not match the order.");
+  const expectedAmountInKobo = order.total_amount * 100;
+  const paidCurrency = params.currency.toUpperCase();
+
+  if (paidCurrency !== order.currency) {
+    throw new Error("Payment currency does not match the order.");
+  }
+
+  if (params.amount < expectedAmountInKobo) {
+    throw new Error("Payment amount is less than the order total.");
   }
 
   const { error } = await supabase.rpc("finalize_paid_order", {
@@ -144,4 +151,3 @@ export async function finalizeVerifiedPaystackPayment(params: {
     email_sent: shouldSendEmail,
   };
 }
-
