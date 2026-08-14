@@ -930,6 +930,34 @@ th {
   gap: 10px;
   align-items: center;
 }
+.admin-upload-dropzone {
+  align-items: center;
+  background: #fff;
+  border: 1px dashed #9b6bd5;
+  border-radius: 14px;
+  color: #2e174f;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  min-height: 84px;
+  padding: 14px;
+  text-align: center;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.admin-upload-dropzone:hover,
+.admin-upload-dropzone:focus-within {
+  background: #fbf7ff;
+  border-color: #6d2eb8;
+  transform: translateY(-1px);
+}
+.admin-upload-dropzone strong {
+  font-size: 12px;
+}
+.admin-upload-dropzone span {
+  color: #686868;
+  font-size: 11px;
+  line-height: 1.4;
+}
 .admin-image-preview {
   width: 84px;
   height: 84px;

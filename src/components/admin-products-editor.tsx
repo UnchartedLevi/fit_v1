@@ -27,6 +27,7 @@ type AdminProduct = {
     coloursText: string;
     stock_quantity: number;
     file?: File | null;
+    uploadState?: "idle" | "ready" | "uploading";
     isSaving?: boolean;
 };
 
@@ -61,6 +62,7 @@ const blankDraft = (): AdminProduct => ({
     coloursText: "Default",
     stock_quantity: 0,
     file: null,
+    uploadState: "idle",
     isSaving: false,
 });
 
@@ -106,6 +108,7 @@ function normalizeProduct(product: RawProduct): AdminProduct {
         coloursText: colours.length ? colours.join(", ") : "Default",
         stock_quantity: totalStock,
         file: null,
+        uploadState: "idle",
         isSaving: false,
     };
 }
@@ -130,6 +133,10 @@ async function uploadToCloudinary(file: File) {
     const payload = (await response.json()) as { secure_url?: string; error?: { message?: string } };
     if (!response.ok || !payload.secure_url) throw new Error(payload.error?.message || "Cloudinary upload failed.");
     return payload.secure_url;
+}
+
+function isSupportedImage(file: File) {
+    return file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024;
 }
 
 export function AdminProductsEditor() {
@@ -200,9 +207,13 @@ export function AdminProductsEditor() {
 
     const handleFileChange = (product: AdminProduct, file: File | null) => {
         if (!file) return;
+        if (!isSupportedImage(file)) {
+            toast.error("Choose a JPG, PNG, WebP, GIF, or other image under 10 MB.");
+            return;
+        }
         const preview = URL.createObjectURL(file);
-        if (product.id === "new") setDraft((current) => ({ ...current, file, imageUrl: preview }));
-        else updateProductState(product.id, { file, imageUrl: preview });
+        if (product.id === "new") setDraft((current) => ({ ...current, file, imageUrl: preview, uploadState: "ready" }));
+        else updateProductState(product.id, { file, imageUrl: preview, uploadState: "ready" });
     };
 
     const getCategoryId = async (name: string) => {
@@ -250,7 +261,10 @@ export function AdminProductsEditor() {
     const saveImage = async (product: AdminProduct, productId: string, imageId?: string) => {
         if (!client) throw new Error("Supabase is not configured.");
         let imageUrl = product.imageUrl.trim();
-        if (product.file) imageUrl = await uploadToCloudinary(product.file);
+        if (product.file) {
+            setSaving(product.id, true);
+            imageUrl = await uploadToCloudinary(product.file);
+        }
         if (!imageUrl || imageUrl.startsWith("blob:")) return;
 
         if (imageId) {
@@ -356,7 +370,18 @@ export function AdminProductsEditor() {
                 <div className="admin-image-cell">
                     {product.imageUrl ? <img className="admin-image-preview" src={product.imageUrl} alt={product.name || "Product preview"} /> : <div className="admin-image-placeholder">No image</div>}
                     <input className="admin-input wide" value={product.imageUrl.startsWith("blob:") ? "" : product.imageUrl} placeholder="Cloudinary/image URL" onChange={(event) => (isDraft ? setDraft({ ...product, imageUrl: event.target.value, file: null }) : updateProductState(product.id, { imageUrl: event.target.value, file: null }))} />
-                    <input className="admin-file-input" type="file" accept="image/*" onChange={(event) => handleFileChange(product, event.target.files?.[0] ?? null)} />
+                    <label
+                        className="admin-upload-dropzone"
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => {
+                            event.preventDefault();
+                            handleFileChange(product, event.dataTransfer.files?.[0] ?? null);
+                        }}
+                    >
+                        <input className="admin-file-input sr-only" type="file" accept="image/*" onChange={(event) => handleFileChange(product, event.target.files?.[0] ?? null)} />
+                        <strong>{product.uploadState === "uploading" || product.isSaving && product.file ? "Uploading to Cloudinary…" : product.file ? "Image ready to upload" : "Drop an image here"}</strong>
+                        <span>{product.file ? product.file.name : "or choose a file · JPG, PNG, WebP · max 10 MB"}</span>
+                    </label>
                 </div>
             </td>
             <td>
@@ -415,4 +440,3 @@ export function AdminProductsEditor() {
         </div>
     );
 }
-
