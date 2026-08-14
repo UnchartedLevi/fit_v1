@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, LayoutDashboard, Package, ShoppingBag, Store } from "lucide-react";
+import { ArrowUpRight, CreditCard, LayoutDashboard, Package, ShoppingBag, Store } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/payments", label: "Payments", icon: CreditCard },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -67,4 +68,3 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

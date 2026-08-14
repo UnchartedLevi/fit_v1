@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { money } from "@/lib/products";
@@ -349,27 +350,27 @@ export function AdminProductsEditor() {
     const renderEditorRow = (product: AdminProduct, isDraft = false) => (
         <tr key={product.id}>
             <td>
-                <input className="admin-input wide" value={product.name} placeholder="Product name" onChange={(event) => (isDraft ? setDraft({ ...product, name: event.target.value }) : updateProductState(product.id, { name: event.target.value }))} />
-                <input className="admin-input wide muted-input" value={product.slug} placeholder="auto-slug" onChange={(event) => (isDraft ? setDraft({ ...product, slug: event.target.value }) : updateProductState(product.id, { slug: event.target.value }))} />
-                <textarea className="admin-textarea" value={product.description} placeholder="Description" rows={3} onChange={(event) => (isDraft ? setDraft({ ...product, description: event.target.value }) : updateProductState(product.id, { description: event.target.value }))} />
+                <label className="admin-field"><span>Product name</span><input className="admin-input wide" value={product.name} placeholder="e.g. FITS Core Jersey" onChange={(event) => (isDraft ? setDraft({ ...product, name: event.target.value }) : updateProductState(product.id, { name: event.target.value }))} /></label>
+                <label className="admin-field"><span>URL slug</span><input className="admin-input wide muted-input" value={product.slug} placeholder="Generated from name" onChange={(event) => (isDraft ? setDraft({ ...product, slug: event.target.value }) : updateProductState(product.id, { slug: event.target.value }))} /></label>
+                <label className="admin-field"><span>Description</span><textarea className="admin-textarea" value={product.description} placeholder="Describe the product" rows={3} onChange={(event) => (isDraft ? setDraft({ ...product, description: event.target.value }) : updateProductState(product.id, { description: event.target.value }))} /></label>
             </td>
             <td>
-                <input className="admin-input" list="admin-categories" value={product.categoryName} onChange={(event) => (isDraft ? setDraft({ ...product, categoryName: event.target.value }) : updateProductState(product.id, { categoryName: event.target.value }))} />
+                <label className="admin-field"><span>Category</span><input className="admin-input" list="admin-categories" value={product.categoryName} placeholder="e.g. Jerseys" onChange={(event) => (isDraft ? setDraft({ ...product, categoryName: event.target.value }) : updateProductState(product.id, { categoryName: event.target.value }))} /></label>
             </td>
             <td>
-                <input className="admin-input" type="number" min={0} value={product.base_price} onChange={(event) => (isDraft ? setDraft({ ...product, base_price: Number(event.target.value) }) : updateProductState(product.id, { base_price: Number(event.target.value) }))} />
-                <input className="admin-input" type="number" min={0} placeholder="Previous" value={product.compare_at_price ?? ""} onChange={(event) => (isDraft ? setDraft({ ...product, compare_at_price: event.target.value ? Number(event.target.value) : null }) : updateProductState(product.id, { compare_at_price: event.target.value ? Number(event.target.value) : null }))} />
-                <small>{money(Number(product.base_price) || 0)}</small>
+                <label className="admin-field"><span>Current price (₦)</span><input className="admin-input" type="number" min={0} value={product.base_price} onChange={(event) => (isDraft ? setDraft({ ...product, base_price: Number(event.target.value) }) : updateProductState(product.id, { base_price: Number(event.target.value) }))} /></label>
+                <label className="admin-field"><span>Previous price (₦)</span><input className="admin-input" type="number" min={0} placeholder="Optional" value={product.compare_at_price ?? ""} onChange={(event) => (isDraft ? setDraft({ ...product, compare_at_price: event.target.value ? Number(event.target.value) : null }) : updateProductState(product.id, { compare_at_price: event.target.value ? Number(event.target.value) : null }))} /></label>
+                <small>Storefront: {money(Number(product.base_price) || 0)}</small>
             </td>
             <td>
-                <input className="admin-input" type="number" min={0} value={product.stock_quantity} onChange={(event) => (isDraft ? setDraft({ ...product, stock_quantity: Number(event.target.value) }) : updateProductState(product.id, { stock_quantity: Number(event.target.value) }))} />
-                <input className="admin-input" value={product.sizesText} placeholder="S, M, L" onChange={(event) => (isDraft ? setDraft({ ...product, sizesText: event.target.value }) : updateProductState(product.id, { sizesText: event.target.value }))} />
-                <input className="admin-input" value={product.coloursText} placeholder="Black, White" onChange={(event) => (isDraft ? setDraft({ ...product, coloursText: event.target.value }) : updateProductState(product.id, { coloursText: event.target.value }))} />
+                <label className="admin-field"><span>Total quantity in stock</span><input className="admin-input" type="number" min={0} value={product.stock_quantity} onChange={(event) => (isDraft ? setDraft({ ...product, stock_quantity: Number(event.target.value) }) : updateProductState(product.id, { stock_quantity: Number(event.target.value) }))} /></label>
+                <label className="admin-field"><span>Sizes (comma-separated)</span><input className="admin-input" value={product.sizesText} placeholder="S, M, L" onChange={(event) => (isDraft ? setDraft({ ...product, sizesText: event.target.value }) : updateProductState(product.id, { sizesText: event.target.value }))} /></label>
+                <label className="admin-field"><span>Colours (comma-separated)</span><input className="admin-input" value={product.coloursText} placeholder="Black, White" onChange={(event) => (isDraft ? setDraft({ ...product, coloursText: event.target.value }) : updateProductState(product.id, { coloursText: event.target.value }))} /></label>
             </td>
             <td>
                 <div className="admin-image-cell">
-                    {product.imageUrl ? <img className="admin-image-preview" src={product.imageUrl} alt={product.name || "Product preview"} /> : <div className="admin-image-placeholder">No image</div>}
-                    <input className="admin-input wide" value={product.imageUrl.startsWith("blob:") ? "" : product.imageUrl} placeholder="Cloudinary/image URL" onChange={(event) => (isDraft ? setDraft({ ...product, imageUrl: event.target.value, file: null }) : updateProductState(product.id, { imageUrl: event.target.value, file: null }))} />
+                    {product.imageUrl ? <Image className="admin-image-preview" src={product.imageUrl} alt={product.name || "Product preview"} width={84} height={84} unoptimized /> : <div className="admin-image-placeholder">No image</div>}
+                    <label className="admin-field"><span>Image URL</span><input className="admin-input wide" value={product.imageUrl.startsWith("blob:") ? "" : product.imageUrl} placeholder="Cloudinary URL (filled after upload)" onChange={(event) => (isDraft ? setDraft({ ...product, imageUrl: event.target.value, file: null }) : updateProductState(product.id, { imageUrl: event.target.value, file: null }))} /></label>
                     <label
                         className="admin-upload-dropzone"
                         onDragOver={(event) => event.preventDefault()}

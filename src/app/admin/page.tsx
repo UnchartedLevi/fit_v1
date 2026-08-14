@@ -77,6 +77,10 @@ export default async function Admin() {
               <strong>Review orders</strong>
               <span>Monitor payments and fulfilment progress.</span>
             </a>
+            <a href="/admin/payments" className="admin-action-card">
+              <strong>Review payments</strong>
+              <span>See individual Paystack records and monthly income.</span>
+            </a>
           </div>
         </section>
       </div>
