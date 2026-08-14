@@ -507,6 +507,12 @@ footer small {
   background: transparent;
   padding: 12px 18px;
 }
+.low-stock {
+  color: #c1121f;
+  font-size: 12px;
+  font-weight: 700;
+  margin: -10px 0 18px;
+}
 .add-button {
   width: 100%;
   border: 0;
@@ -515,6 +521,11 @@ footer small {
   padding: 18px;
   text-transform: uppercase;
   font-weight: 700;
+}
+.add-button.checkout-state {
+  background: #fff;
+  color: #111;
+  border: 1px solid #111;
 }
 .stock {
   font-size: 12px;
