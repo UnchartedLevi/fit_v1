@@ -14,7 +14,7 @@ function mapRecordToProduct(record: ProductRecord): StoreProduct {
     .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order)
     .map((image) => image.image_url);
   const variants = (record.product_variants ?? []).filter((variant) => variant.is_active);
-  const sizes = [...new Set(variants.map((variant) => variant.size).filter(Boolean))] as string[];
+  const sizes = [...new Set(variants.map((variant) => variant.size).filter((size) => size && !["premium", "standard"].includes(size.toLowerCase())))] as string[];
   const colours = [...new Set(variants.map((variant) => variant.colour).filter(Boolean))] as string[];
   const stock = variants.reduce((total, variant) => total + variant.stock_quantity, 0);
 
@@ -32,7 +32,7 @@ function mapRecordToProduct(record: ProductRecord): StoreProduct {
     categorySlug: record.categories?.slug,
     images,
     variants,
-    sizes: sizes.length ? sizes : ["One Size"],
+    sizes,
     colours,
     stock_quantity: stock,
     is_active: record.status === "active",

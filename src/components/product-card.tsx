@@ -13,6 +13,9 @@ function discountPercent(product: Product) {
 export function ProductCard({ product }: { product: Product }) {
   const discount = discountPercent(product);
   const soldOut = product.stock_quantity <= 0;
+  const variantPrices = (product.variants ?? []).map((variant) => variant.price_override ?? product.price);
+  const minimumPrice = variantPrices.length ? Math.min(...variantPrices) : product.price;
+  const maximumPrice = variantPrices.length ? Math.max(...variantPrices) : product.price;
 
   return (
     <article className="product-card">
@@ -27,7 +30,7 @@ export function ProductCard({ product }: { product: Product }) {
             </p>
           </div>
           <div className="price-stack">
-            <b>{money(product.price)}</b>
+            <b>{minimumPrice === maximumPrice ? money(minimumPrice) : `${money(minimumPrice)} – ${money(maximumPrice)}`}</b>
             {product.compareAtPrice ? <s>{money(product.compareAtPrice)}</s> : null}
             {discount ? <span>{discount}% off</span> : null}
           </div>

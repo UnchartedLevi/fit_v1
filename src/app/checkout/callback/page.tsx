@@ -1,4 +1,31 @@
 "use client";
-import { Suspense, useEffect, useState } from "react"; import Link from "next/link"; import { useSearchParams } from "next/navigation"; import { useCart } from "@/components/cart-provider";
-function Result(){const query=useSearchParams(),[status,setStatus]=useState("Verifying your payment…"),{clear}=useCart();useEffect(()=>{const ref=query.get("reference")||query.get("trxref");const task=ref?fetch(`/api/paystack/verify?reference=${encodeURIComponent(ref)}`).then(async r=>{const x=await r.json();if(!r.ok)throw new Error(x.error);clear();return "Payment verified. Your order is confirmed."}):Promise.reject(new Error("Payment reference missing."));task.then(setStatus).catch(e=>setStatus(e.message))},[query,clear]);return <div className="page-shell"><span className="eyebrow">ORDER STATUS</span><h1 className="page-title">{status}</h1><Link className="button" href="/products">Continue shopping</Link></div>}
-export default function Callback(){return <Suspense fallback={<div className="page-shell">Verifying payment…</div>}><Result/></Suspense>}
+
+import { Check, X } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCart } from "@/components/cart-provider";
+
+function Result() {
+  const query = useSearchParams();
+  const router = useRouter();
+  const { clear } = useCart();
+  const [result, setResult] = useState<{ state: "loading" | "success" | "error"; message: string }>({ state: "loading", message: "Verifying your payment…" });
+
+  useEffect(() => {
+    const reference = query.get("reference") || query.get("trxref");
+    const task = reference
+      ? fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`).then(async (response) => {
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.error);
+          clear();
+          setResult({ state: "success", message: "Payment successful. Your order is confirmed." });
+          window.setTimeout(() => router.replace("/"), 3000);
+        })
+      : Promise.reject(new Error("Payment reference missing."));
+    task.catch((error) => setResult({ state: "error", message: error instanceof Error ? error.message : "Payment verification failed." }));
+  }, [clear, query, router]);
+
+  return <div className="payment-result-page"><div className={`payment-result payment-result--${result.state}`}>{result.state === "loading" ? <span className="payment-spinner" /> : result.state === "success" ? <Check /> : <X />}<p className="eyebrow">ORDER STATUS</p><h1>{result.message}</h1><p>{result.state === "success" ? "You’ll be redirected home in a moment." : result.state === "loading" ? "Please keep this window open." : "Your cart is still safe. You can return to checkout and try again."}</p>{result.state === "error" ? <button className="button" onClick={() => router.push("/checkout")}>Return to checkout</button> : null}</div></div>;
+}
+
+export default function Callback() { return <Suspense fallback={<div className="payment-result-page"><span className="payment-spinner" /></div>}><Result /></Suspense>; }

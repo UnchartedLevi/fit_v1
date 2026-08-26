@@ -47,7 +47,7 @@ export default function Checkout() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer: Object.fromEntries(form),
-          items: items.map((item) => ({ product_id: item.product.id, size: item.size, quantity: item.quantity })),
+          items: items.map((item) => ({ product_id: item.product.id, variant_id: item.variantId, quantity: item.quantity })),
         }),
       });
       const data = await response.json();
@@ -61,6 +61,7 @@ export default function Checkout() {
 
   return (
     <div className="page-shell">
+      {busy ? <div className="payment-overlay" role="status" aria-live="polite"><div className="payment-modal"><span className="payment-spinner" /><p className="eyebrow">PAYSTACK SECURE CHECKOUT</p><h2>Transferring to payment gateway</h2><p>Please keep this window open while we prepare your secure payment.</p></div></div> : null}
       <span className="eyebrow">GUEST CHECKOUT AVAILABLE</span>
       <h1 className="page-title">DELIVERY DETAILS</h1>
       <div className="checkout-grid">
@@ -81,7 +82,7 @@ export default function Checkout() {
         </form>
         <aside className="summary">
           <h2>Order summary</h2>
-          {items.map((item) => <div className="summary-row" key={`${item.product.id}-${item.size}`}><span>{item.product.name} x {item.quantity}<small style={{ display: "block" }}>Size {item.size}</small></span><b>{money(item.product.price * item.quantity)}</b></div>)}
+          {items.map((item) => <div className="summary-row" key={`${item.product.id}-${item.variantId}`}><span>{item.product.name} x {item.quantity}<small style={{ display: "block" }}>{item.option}</small></span><b>{money(item.unitPrice * item.quantity)}</b></div>)}
           <div className="total-line" style={{ marginTop: 25 }}><span>Total</span><b>{money(subtotal)}</b></div>
         </aside>
       </div>

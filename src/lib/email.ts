@@ -176,3 +176,15 @@ export async function sendOrderNotificationEmails(order: OrderWithItems) {
     }
   }
 }
+
+export async function sendOrderStatusEmail(order: { order_number: string; customer_email: string; fulfilment_status: "shipped" | "delivered"; delivery_address_snapshot: Record<string, unknown> }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  if (!apiKey || !fromEmail) return;
+  const delivered = order.fulfilment_status === "delivered";
+  const recipient = String(order.delivery_address_snapshot.recipient_name ?? "FITS customer");
+  const subject = delivered ? `Your FITS order ${order.order_number} has been delivered` : `Your FITS order ${order.order_number} is on the way`;
+  const message = delivered ? "Your order has been marked as delivered. Thank you for shopping with FITS." : "Your order has been shipped and is now on the way to your delivery address.";
+  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: `FITS Store <${fromEmail}>`, to: [order.customer_email], subject, text: `Hi ${recipient},\n\n${message}\n\nOrder: ${order.order_number}`, html: `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;padding:32px"><p style="font-size:12px;letter-spacing:.15em">FITS ORDER UPDATE</p><h1>${delivered ? "DELIVERED." : "ON THE WAY."}</h1><p>Hi ${escapeHtml(recipient)},</p><p>${message}</p><p><strong>Order:</strong> ${escapeHtml(order.order_number)}</p></div>` }) });
+  if (!response.ok) console.error("Resend fulfilment email failed:", response.status, await response.text());
+}

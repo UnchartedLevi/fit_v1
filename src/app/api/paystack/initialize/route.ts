@@ -15,7 +15,7 @@ const Body = z.object({
     .array(
       z.object({
         product_id: z.uuid(),
-        size: z.string().min(1),
+        variant_id: z.uuid(),
         quantity: z.number().int().positive().max(20),
       }),
     )
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
       if (!product || product.status !== "active") throw new Error("A product in your bag is no longer available.");
 
       const variants = (product.product_variants ?? []).filter((variant) => variant.is_active);
-      const variant = variants.find((candidate) => candidate.size === item.size) ?? variants[0];
+      const variant = variants.find((candidate) => candidate.id === item.variant_id);
       if (!variant) throw new Error(`${product.name} has no available variants.`);
       if (variant.stock_quantity < item.quantity) throw new Error(`${product.name} does not have enough stock.`);
 
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
         product_id: product.id,
         variant_id: variant.id,
         product_name: product.name,
-        variant_description: [variant.size, variant.colour].filter(Boolean).join(" / "),
+        variant_description: [typeof variant.option_values?.option === "string" ? variant.option_values.option : null, variant.size && typeof variant.option_values?.option !== "string" && !["premium", "standard"].includes(variant.size.toLowerCase()) ? `Size ${variant.size}` : null, variant.size && typeof variant.option_values?.option !== "string" && ["premium", "standard"].includes(variant.size.toLowerCase()) ? variant.size : null, variant.colour && variant.colour !== "Default" ? variant.colour : null].filter(Boolean).join(" / ") || "One Size",
         sku: variant.sku,
         image_url: product.product_images?.find((image) => image.is_primary)?.image_url ?? product.product_images?.[0]?.image_url ?? null,
         unit_price: unitPrice,

@@ -6,7 +6,7 @@ export function SiteFooter() {
     <footer>
       <div>
         <Link href="/" className="brand-logo footer-logo" aria-label="FITS home">
-          <Image src="/brand/fits-logo-white.png" alt="FITS" width={557} height={296} />
+          <Image src="/brand/fits-wordmark-racing-white.svg" alt="FITS" width={210} height={76} />
         </Link>
         <p>Made for the game. Worn for life.</p>
       </div>

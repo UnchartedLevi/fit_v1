@@ -1,443 +1,94 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { Plus, Search, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { money } from "@/lib/products";
+import { createClient } from "@/lib/supabase/client";
 import type { ProductImageRecord, ProductVariantRecord } from "@/lib/commerce-types";
 
-const ADMIN_PRODUCTS_PER_PAGE = 8;
-
 type CategoryOption = { id: string; name: string; slug: string };
+type EditableVariant = Omit<Pick<ProductVariantRecord, "id" | "sku" | "size" | "colour" | "option_values" | "price_override" | "stock_quantity" | "is_active">, "id"> & { id?: string };
+type AdminProduct = { id?: string; name: string; slug: string; description: string; category_id: string | null; categoryName: string; base_price: number; compare_at_price: number | null; status: "active" | "draft" | "archived"; featured: boolean; imageUrl: string; imageId?: string; variants: EditableVariant[]; file?: File | null };
+type RawProduct = Omit<AdminProduct, "categoryName" | "imageUrl" | "variants"> & { id: string; categories?: CategoryOption | CategoryOption[] | null; product_images?: ProductImageRecord[]; product_variants?: ProductVariantRecord[] };
 
-type AdminProduct = {
-    id: string;
-    name: string;
-    slug: string;
-    description: string;
-    categoryName: string;
-    categoryId: string | null;
-    base_price: number;
-    compare_at_price: number | null;
-    status: "active" | "draft" | "archived";
-    featured: boolean;
-    imageUrl: string;
-    imageId?: string;
-    sizesText: string;
-    coloursText: string;
-    stock_quantity: number;
-    file?: File | null;
-    uploadState?: "idle" | "ready" | "uploading";
-    isSaving?: boolean;
-};
-
-type RawProduct = {
-    id: string;
-    name: string;
-    slug: string;
-    description: string;
-    category_id: string | null;
-    base_price: number;
-    compare_at_price: number | null;
-    status: "active" | "draft" | "archived";
-    featured: boolean;
-    categories?: { id: string; name: string; slug: string } | { id: string; name: string; slug: string }[] | null;
-    product_images?: ProductImageRecord[];
-    product_variants?: ProductVariantRecord[];
-};
-
-const blankDraft = (): AdminProduct => ({
-    id: "new",
-    name: "",
-    slug: "",
-    description: "",
-    categoryName: "Football",
-    categoryId: null,
-    base_price: 0,
-    compare_at_price: null,
-    status: "active",
-    featured: false,
-    imageUrl: "",
-    sizesText: "One Size",
-    coloursText: "Default",
-    stock_quantity: 0,
-    file: null,
-    uploadState: "idle",
-    isSaving: false,
-});
-
-function slugify(value: string) {
-    return value
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-}
-
-function parseList(value: string, fallback: string) {
-    const parsed = value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    return parsed.length ? [...new Set(parsed)] : [fallback];
-}
+const blankProduct = (): AdminProduct => ({ name: "", slug: "", description: "", category_id: null, categoryName: "Football", base_price: 0, compare_at_price: null, status: "active", featured: false, imageUrl: "", variants: [{ sku: "", size: null, colour: "Default", option_values: {}, price_override: null, stock_quantity: 0, is_active: true }], file: null });
+const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const totalStock = (product: AdminProduct) => product.variants.filter((variant) => variant.is_active).reduce((total, variant) => total + Number(variant.stock_quantity || 0), 0);
+const variantLabel = (variant: EditableVariant) => String(variant.option_values?.option ?? variant.size ?? (variant.colour && variant.colour !== "Default" ? variant.colour : "One Size"));
 
 function normalizeProduct(product: RawProduct): AdminProduct {
-    const images = product.product_images ?? [];
-    const variants = (product.product_variants ?? []).filter((variant) => variant.is_active);
-    const primaryImage = images.find((image) => image.is_primary) ?? images[0];
-    const sizes = [...new Set(variants.map((variant) => variant.size).filter(Boolean))] as string[];
-    const colours = [...new Set(variants.map((variant) => variant.colour).filter(Boolean))] as string[];
-    const totalStock = variants.reduce((total, variant) => total + variant.stock_quantity, 0);
-    const category = Array.isArray(product.categories) ? product.categories[0] : product.categories;
-
-    return {
-        id: product.id,
-        name: product.name,
-        slug: product.slug,
-        description: product.description ?? "",
-        categoryName: category?.name ?? "Uncategorized",
-        categoryId: product.category_id,
-        base_price: product.base_price ?? 0,
-        compare_at_price: product.compare_at_price,
-        status: product.status,
-        featured: product.featured,
-        imageUrl: primaryImage?.image_url ?? "",
-        imageId: primaryImage?.id,
-        sizesText: sizes.length ? sizes.join(", ") : "One Size",
-        coloursText: colours.length ? colours.join(", ") : "Default",
-        stock_quantity: totalStock,
-        file: null,
-        uploadState: "idle",
-        isSaving: false,
-    };
+  const category = Array.isArray(product.categories) ? product.categories[0] : product.categories;
+  const images = product.product_images ?? [];
+  const primaryImage = images.find((image) => image.is_primary) ?? images[0];
+  return { id: product.id, name: product.name, slug: product.slug, description: product.description ?? "", category_id: product.category_id, categoryName: category?.name ?? "Uncategorized", base_price: product.base_price, compare_at_price: product.compare_at_price, status: product.status, featured: product.featured, imageUrl: primaryImage?.image_url ?? "", imageId: primaryImage?.id, variants: (product.product_variants ?? []).filter((variant) => variant.is_active).map((variant) => ({ id: variant.id, sku: variant.sku, size: variant.size, colour: variant.colour, price_override: variant.price_override, stock_quantity: variant.stock_quantity, option_values: variant.option_values, is_active: variant.is_active })), file: null };
 }
 
 async function uploadToCloudinary(file: File) {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-        throw new Error("Cloudinary is not configured yet. Add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET, or paste an image URL manually.");
-    }
-
-    const form = new FormData();
-    form.append("file", file);
-    form.append("upload_preset", uploadPreset);
-    form.append("folder", "fits/products");
-
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: form,
-    });
-    const payload = (await response.json()) as { secure_url?: string; error?: { message?: string } };
-    if (!response.ok || !payload.secure_url) throw new Error(payload.error?.message || "Cloudinary upload failed.");
-    return payload.secure_url;
-}
-
-function isSupportedImage(file: File) {
-    return file.type.startsWith("image/") && file.size <= 10 * 1024 * 1024;
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !uploadPreset) throw new Error("Cloudinary uploads are not configured.");
+  const form = new FormData(); form.append("file", file); form.append("upload_preset", uploadPreset); form.append("folder", "fits/products");
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: form });
+  const payload = await response.json(); if (!response.ok || !payload.secure_url) throw new Error(payload.error?.message || "Cloudinary upload failed."); return payload.secure_url as string;
 }
 
 export function AdminProductsEditor() {
-    const client = useMemo(() => createClient(), []);
-    const [products, setProducts] = useState<AdminProduct[]>([]);
-    const [categories, setCategories] = useState<CategoryOption[]>([]);
-    const [draft, setDraft] = useState<AdminProduct>(() => blankDraft());
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
-    const cloudinaryConfigured = Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+  const client = useMemo(() => createClient(), []);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState<AdminProduct | null>(null);
+  const [saving, setSaving] = useState(false);
 
-    const loadProducts = useCallback(
-        async () => {
-            if (!client) {
-                setError("Missing Supabase environment variables.");
-                setLoading(false);
-                return;
-            }
+  const load = useCallback(async () => {
+    if (!client) return;
+    const [{ data: categoryData, error: categoryError }, { data: productData, error: productError }] = await Promise.all([
+      client.from("categories").select("id,name,slug").order("sort_order"),
+      client.from("products").select("id,name,slug,description,category_id,base_price,compare_at_price,status,featured,categories(id,name,slug),product_images(id,product_id,image_url,alt_text,sort_order,is_primary),product_variants(id,product_id,sku,size,colour,option_values,price_override,stock_quantity,low_stock_threshold,is_active)").order("created_at", { ascending: false }),
+    ]);
+    if (categoryError || productError) return toast.error(categoryError?.message || productError?.message || "Could not load products.");
+    setCategories((categoryData ?? []) as CategoryOption[]); setProducts(((productData ?? []) as unknown as RawProduct[]).map(normalizeProduct));
+  }, [client]);
 
-            setLoading(true);
-            setError(null);
+  useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
+  const visibleProducts = useMemo(() => { const normalized = query.trim().toLowerCase(); return products.filter((product) => !normalized || [product.name, product.slug, product.categoryName].some((value) => value.toLowerCase().includes(normalized))); }, [products, query]);
 
-            const [{ data: categoryData, error: categoryError }, { data: productData, error: productError }] = await Promise.all([
-                client.from("categories").select("id,name,slug").order("sort_order", { ascending: true }),
-                client
-                    .from("products")
-                    .select(
-                        `id,name,slug,description,category_id,base_price,compare_at_price,status,featured,categories(id,name,slug),product_images(id,product_id,image_url,alt_text,sort_order,is_primary),product_variants(id,product_id,sku,size,colour,option_values,price_override,stock_quantity,low_stock_threshold,is_active)`,
-                    )
-                    .order("created_at", { ascending: false }),
-            ]);
+  function updateVariant(index: number, changes: Partial<EditableVariant>) { if (!editing) return; setEditing({ ...editing, variants: editing.variants.map((variant, itemIndex) => itemIndex === index ? { ...variant, ...changes } : variant) }); }
+  function addVariant() { if (!editing) return; setEditing({ ...editing, variants: [...editing.variants, { sku: "", size: null, colour: "Default", option_values: {}, price_override: null, stock_quantity: 0, is_active: true }] }); }
+  function removeVariant(index: number) { if (!editing || editing.variants.length === 1) return; setEditing({ ...editing, variants: editing.variants.filter((_, itemIndex) => itemIndex !== index) }); }
 
-            if (categoryError) {
-                setError(categoryError.message);
-                setLoading(false);
-                return;
-            }
-            if (productError) {
-                setError(productError.message);
-                setLoading(false);
-                return;
-            }
+  async function saveProduct(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (!client || !editing) return; setSaving(true);
+    try {
+      const slug = slugify(editing.slug || editing.name); if (!slug || !editing.name.trim()) throw new Error("Add a product name and slug.");
+      const category = categories.find((item) => item.id === editing.category_id) ?? categories.find((item) => item.name === editing.categoryName);
+      const payload = { name: editing.name.trim(), slug, description: editing.description.trim(), category_id: category?.id ?? null, base_price: Number(editing.base_price), compare_at_price: editing.compare_at_price ? Number(editing.compare_at_price) : null, status: editing.status, featured: editing.featured };
+      const productResult = editing.id ? await client.from("products").update(payload).eq("id", editing.id).select("id").single() : await client.from("products").insert(payload).select("id").single();
+      if (productResult.error || !productResult.data) throw productResult.error ?? new Error("Could not save product.");
+      const productId = productResult.data.id as string;
+      const activeIds = editing.variants.flatMap((variant) => variant.id ? [variant.id] : []);
+      if (editing.id) { let deactivate = client.from("product_variants").update({ is_active: false }).eq("product_id", productId); if (activeIds.length) deactivate = deactivate.not("id", "in", `(${activeIds.join(",")})`); await deactivate; }
+      for (const [index, variant] of editing.variants.entries()) {
+        const variantPayload = { product_id: productId, sku: variant.sku.trim() || `FITS-${slug}-${index + 1}`.toUpperCase(), size: typeof variant.option_values?.option === "string" ? null : variant.size?.trim() || null, colour: variant.colour?.trim() || "Default", option_values: typeof variant.option_values?.option === "string" ? { option: variant.option_values.option } : variant.size ? { size: variant.size } : {}, price_override: variant.price_override === null || variant.price_override === undefined ? null : Number(variant.price_override), stock_quantity: Number(variant.stock_quantity), low_stock_threshold: 10, is_active: true };
+        const result = variant.id ? await client.from("product_variants").update(variantPayload).eq("id", variant.id) : await client.from("product_variants").insert(variantPayload); if (result.error) throw result.error;
+      }
+      if (editing.file) {
+        const imageUrl = await uploadToCloudinary(editing.file);
+        const imagePayload = { product_id: productId, image_url: imageUrl, alt_text: `${editing.name} product image`, sort_order: 0, is_primary: true };
+        const imageResult = editing.imageId ? await client.from("product_images").update(imagePayload).eq("id", editing.imageId) : await client.from("product_images").insert(imagePayload); if (imageResult.error) throw imageResult.error;
+      }
+      toast.success(editing.id ? "Product updated." : "Product added."); setEditing(null); await load();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save product."); } finally { setSaving(false); }
+  }
 
-            setCategories((categoryData ?? []) as CategoryOption[]);
-            setProducts(((productData ?? []) as unknown as RawProduct[]).map(normalizeProduct));
-            setPage(1);
-            setLoading(false);
-        },
-        [client],
-    );
+  async function deleteProduct() { if (!client || !editing?.id || !window.confirm(`Delete ${editing.name}?`)) return; setSaving(true); const { error } = await client.from("products").delete().eq("id", editing.id); setSaving(false); if (error) return toast.error(error.message); setEditing(null); await load(); toast.success("Product deleted."); }
 
-    useEffect(() => {
-        const timer = window.setTimeout(() => {
-            void loadProducts();
-        }, 0);
-        return () => window.clearTimeout(timer);
-    }, [loadProducts]);
-
-    const updateProductState = (id: string, changes: Partial<AdminProduct>) => {
-        setProducts((prev) => prev.map((product) => (product.id === id ? { ...product, ...changes } : product)));
-    };
-
-    const setSaving = (id: string, isSaving: boolean) => {
-        if (id === "new") setDraft((current) => ({ ...current, isSaving }));
-        else updateProductState(id, { isSaving });
-    };
-
-    const handleFileChange = (product: AdminProduct, file: File | null) => {
-        if (!file) return;
-        if (!isSupportedImage(file)) {
-            toast.error("Choose a JPG, PNG, WebP, GIF, or other image under 10 MB.");
-            return;
-        }
-        const preview = URL.createObjectURL(file);
-        if (product.id === "new") setDraft((current) => ({ ...current, file, imageUrl: preview, uploadState: "ready" }));
-        else updateProductState(product.id, { file, imageUrl: preview, uploadState: "ready" });
-    };
-
-    const getCategoryId = async (name: string) => {
-        if (!client) throw new Error("Supabase is not configured.");
-        const cleanName = name.trim() || "Uncategorized";
-        const slug = slugify(cleanName) || "uncategorized";
-        const found = categories.find((category) => category.slug === slug || category.name.toLowerCase() === cleanName.toLowerCase());
-        if (found) return found.id;
-
-        const { data, error: insertError } = await client
-            .from("categories")
-            .upsert({ name: cleanName, slug, description: `${cleanName} products`, is_active: true }, { onConflict: "slug" })
-            .select("id,name,slug")
-            .single();
-        if (insertError || !data) throw insertError ?? new Error("Could not create category.");
-        setCategories((current) => [...current, data as CategoryOption]);
-        return data.id as string;
-    };
-
-    const saveVariants = async (product: AdminProduct, productId: string, slug: string) => {
-        if (!client) throw new Error("Supabase is not configured.");
-        const sizes = parseList(product.sizesText, "One Size");
-        const colours = parseList(product.coloursText, "Default");
-        const variants = sizes.flatMap((size) => colours.map((colour) => ({ size, colour })));
-        const baseStock = Math.floor(Number(product.stock_quantity) / variants.length);
-        const remainder = Number(product.stock_quantity) % variants.length;
-
-        await client.from("product_variants").update({ is_active: false }).eq("product_id", productId);
-
-        const rows = variants.map((variant, index) => ({
-            product_id: productId,
-            sku: `FITS-${slug}-${slugify(variant.size)}-${slugify(variant.colour)}`.toUpperCase().slice(0, 80),
-            size: variant.size,
-            colour: variant.colour,
-            stock_quantity: baseStock + (index < remainder ? 1 : 0),
-            low_stock_threshold: 3,
-            is_active: true,
-            option_values: { size: variant.size, colour: variant.colour },
-        }));
-
-        const { error: variantError } = await client.from("product_variants").upsert(rows, { onConflict: "sku" });
-        if (variantError) throw variantError;
-    };
-
-    const saveImage = async (product: AdminProduct, productId: string, imageId?: string) => {
-        if (!client) throw new Error("Supabase is not configured.");
-        let imageUrl = product.imageUrl.trim();
-        if (product.file) {
-            setSaving(product.id, true);
-            imageUrl = await uploadToCloudinary(product.file);
-        }
-        if (!imageUrl || imageUrl.startsWith("blob:")) return;
-
-        if (imageId) {
-            const { error: imageError } = await client
-                .from("product_images")
-                .update({ image_url: imageUrl, alt_text: `${product.name} image`, is_primary: true })
-                .eq("id", imageId);
-            if (imageError) throw imageError;
-        } else {
-            const { error: imageError } = await client.from("product_images").insert({
-                product_id: productId,
-                image_url: imageUrl,
-                alt_text: `${product.name} image`,
-                sort_order: 0,
-                is_primary: true,
-            });
-            if (imageError) throw imageError;
-        }
-    };
-
-    const saveProduct = async (product: AdminProduct) => {
-        if (!client) {
-            toast.error("Supabase variables are not configured.");
-            return;
-        }
-        if (!product.name.trim()) {
-            toast.error("Product name is required.");
-            return;
-        }
-
-        setSaving(product.id, true);
-
-        try {
-            const slug = slugify(product.slug || product.name);
-            const categoryId = await getCategoryId(product.categoryName);
-            const payload = {
-                name: product.name.trim(),
-                slug,
-                description: product.description.trim(),
-                category_id: categoryId,
-                base_price: Number(product.base_price),
-                compare_at_price: product.compare_at_price !== null && Number(product.compare_at_price) > 0 ? Number(product.compare_at_price) : null,
-                status: product.status,
-                featured: product.featured,
-            };
-
-            const productId = product.id === "new" ? undefined : product.id;
-            const { data, error: productError } = productId
-                ? await client.from("products").update(payload).eq("id", productId).select("id").single()
-                : await client.from("products").insert(payload).select("id").single();
-            if (productError || !data) throw productError ?? new Error("Could not save product.");
-
-            const savedId = data.id as string;
-            await saveVariants(product, savedId, slug);
-            await saveImage(product, savedId, product.imageId);
-
-            toast.success(`Saved ${product.name}`);
-            if (product.id === "new") setDraft(blankDraft());
-            await loadProducts();
-        } catch (saveError) {
-            toast.error(saveError instanceof Error ? saveError.message : "Update failed.");
-        } finally {
-            setSaving(product.id, false);
-        }
-    };
-
-    const deleteProduct = async (product: AdminProduct) => {
-        if (!client) return;
-        if (!window.confirm(`Delete ${product.name}? This removes it from the catalogue.`)) return;
-        updateProductState(product.id, { isSaving: true });
-        const { error: deleteError } = await client.from("products").delete().eq("id", product.id);
-        if (deleteError) {
-            const { error: archiveError } = await client.from("products").update({ status: "archived" }).eq("id", product.id);
-            if (archiveError) toast.error(archiveError.message);
-            else toast.success(`${product.name} archived instead of deleted because linked records exist.`);
-        } else {
-            toast.success(`${product.name} deleted`);
-        }
-        await loadProducts();
-    };
-
-    const renderEditorRow = (product: AdminProduct, isDraft = false) => (
-        <tr key={product.id}>
-            <td>
-                <label className="admin-field"><span>Product name</span><input className="admin-input wide" value={product.name} placeholder="e.g. FITS Core Jersey" onChange={(event) => (isDraft ? setDraft({ ...product, name: event.target.value }) : updateProductState(product.id, { name: event.target.value }))} /></label>
-                <label className="admin-field"><span>URL slug</span><input className="admin-input wide muted-input" value={product.slug} placeholder="Generated from name" onChange={(event) => (isDraft ? setDraft({ ...product, slug: event.target.value }) : updateProductState(product.id, { slug: event.target.value }))} /></label>
-                <label className="admin-field"><span>Description</span><textarea className="admin-textarea" value={product.description} placeholder="Describe the product" rows={3} onChange={(event) => (isDraft ? setDraft({ ...product, description: event.target.value }) : updateProductState(product.id, { description: event.target.value }))} /></label>
-            </td>
-            <td>
-                <label className="admin-field"><span>Category</span><input className="admin-input" list="admin-categories" value={product.categoryName} placeholder="e.g. Jerseys" onChange={(event) => (isDraft ? setDraft({ ...product, categoryName: event.target.value }) : updateProductState(product.id, { categoryName: event.target.value }))} /></label>
-            </td>
-            <td>
-                <label className="admin-field"><span>Current price (₦)</span><input className="admin-input" type="number" min={0} value={product.base_price} onChange={(event) => (isDraft ? setDraft({ ...product, base_price: Number(event.target.value) }) : updateProductState(product.id, { base_price: Number(event.target.value) }))} /></label>
-                <label className="admin-field"><span>Previous price (₦)</span><input className="admin-input" type="number" min={0} placeholder="Optional" value={product.compare_at_price ?? ""} onChange={(event) => (isDraft ? setDraft({ ...product, compare_at_price: event.target.value ? Number(event.target.value) : null }) : updateProductState(product.id, { compare_at_price: event.target.value ? Number(event.target.value) : null }))} /></label>
-                <small>Storefront: {money(Number(product.base_price) || 0)}</small>
-            </td>
-            <td>
-                <label className="admin-field"><span>Total quantity in stock</span><input className="admin-input" type="number" min={0} value={product.stock_quantity} onChange={(event) => (isDraft ? setDraft({ ...product, stock_quantity: Number(event.target.value) }) : updateProductState(product.id, { stock_quantity: Number(event.target.value) }))} /></label>
-                <label className="admin-field"><span>Sizes (comma-separated)</span><input className="admin-input" value={product.sizesText} placeholder="S, M, L" onChange={(event) => (isDraft ? setDraft({ ...product, sizesText: event.target.value }) : updateProductState(product.id, { sizesText: event.target.value }))} /></label>
-                <label className="admin-field"><span>Colours (comma-separated)</span><input className="admin-input" value={product.coloursText} placeholder="Black, White" onChange={(event) => (isDraft ? setDraft({ ...product, coloursText: event.target.value }) : updateProductState(product.id, { coloursText: event.target.value }))} /></label>
-            </td>
-            <td>
-                <div className="admin-image-cell">
-                    {product.imageUrl ? <Image className="admin-image-preview" src={product.imageUrl} alt={product.name || "Product preview"} width={84} height={84} unoptimized /> : <div className="admin-image-placeholder">No image</div>}
-                    <label className="admin-field"><span>Image URL</span><input className="admin-input wide" value={product.imageUrl.startsWith("blob:") ? "" : product.imageUrl} placeholder="Cloudinary URL (filled after upload)" onChange={(event) => (isDraft ? setDraft({ ...product, imageUrl: event.target.value, file: null }) : updateProductState(product.id, { imageUrl: event.target.value, file: null }))} /></label>
-                    <label
-                        className="admin-upload-dropzone"
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={(event) => {
-                            event.preventDefault();
-                            handleFileChange(product, event.dataTransfer.files?.[0] ?? null);
-                        }}
-                    >
-                        <input className="admin-file-input sr-only" type="file" accept="image/*" onChange={(event) => handleFileChange(product, event.target.files?.[0] ?? null)} />
-                        <strong>{product.uploadState === "uploading" || product.isSaving && product.file ? "Uploading to Cloudinary…" : product.file ? "Image ready to upload" : "Drop an image here"}</strong>
-                        <span>{product.file ? product.file.name : "or choose a file · JPG, PNG, WebP · max 10 MB"}</span>
-                    </label>
-                </div>
-            </td>
-            <td>
-                <label className="admin-check"><input type="checkbox" checked={product.featured} onChange={(event) => (isDraft ? setDraft({ ...product, featured: event.target.checked }) : updateProductState(product.id, { featured: event.target.checked }))} /> Featured</label>
-                <label className="admin-check"><input type="checkbox" checked={product.status === "active"} onChange={(event) => (isDraft ? setDraft({ ...product, status: event.target.checked ? "active" : "draft" }) : updateProductState(product.id, { status: event.target.checked ? "active" : "draft" }))} /> Active</label>
-                <button className="button admin-save-button" type="button" onClick={() => saveProduct(product)} disabled={product.isSaving}>{product.isSaving ? "Saving…" : isDraft ? "Create" : "Save"}</button>
-                {!isDraft ? <button className="admin-delete-button" type="button" onClick={() => deleteProduct(product)} disabled={product.isSaving}>Delete</button> : null}
-            </td>
-        </tr>
-    );
-
-    if (loading) return <div>Loading products…</div>;
-    if (error) return <div className="admin-error">{error}</div>;
-
-    const totalPages = Math.max(1, Math.ceil(products.length / ADMIN_PRODUCTS_PER_PAGE));
-    const pagedProducts = products.slice((page - 1) * ADMIN_PRODUCTS_PER_PAGE, page * ADMIN_PRODUCTS_PER_PAGE);
-
-    return (
-        <div className="admin-editor">
-            <datalist id="admin-categories">
-                {categories.map((category) => <option key={category.id} value={category.name} />)}
-            </datalist>
-            <div className="admin-editor-toolbar">
-                <p>{products.length} products · Page {page} of {totalPages}</p>
-                <span className={cloudinaryConfigured ? "cloudinary-status ready" : "cloudinary-status"}>
-                    {cloudinaryConfigured ? "Cloudinary uploads enabled" : "Cloudinary upload preset missing"}
-                </span>
-            </div>
-            <div className="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock / Options</th>
-                            <th>Image</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {renderEditorRow(draft, true)}
-                        {pagedProducts.map((product) => renderEditorRow(product))}
-                    </tbody>
-                </table>
-            </div>
-            {totalPages > 1 ? (
-                <div className="pagination admin-pagination" aria-label="Admin product pagination">
-                    <button type="button" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Previous</button>
-                    {Array.from({ length: totalPages }, (_, index) => index + 1).map((item) => (
-                        <button key={item} type="button" className={item === page ? "active" : ""} onClick={() => setPage(item)} aria-current={item === page ? "page" : undefined}>{item}</button>
-                    ))}
-                    <button type="button" disabled={page === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))}>Next</button>
-                </div>
-            ) : null}
-        </div>
-    );
+  return <div className="admin-catalogue">
+    <div className="admin-catalogue-toolbar"><label className="admin-catalogue-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products, categories or slug" /></label><button className="button" type="button" onClick={() => setEditing(blankProduct())}><Plus /> Add product</button></div>
+    <div className="admin-stock-summary"><strong>{products.length}</strong><span>Products</span><strong>{products.reduce((total, product) => total + totalStock(product), 0)}</strong><span>Units in stock</span></div>
+    <div className="admin-product-grid">{visibleProducts.map((product) => <button type="button" className="admin-product-card" key={product.id} onClick={() => setEditing(structuredClone(product))}><div className="admin-product-card__image">{product.imageUrl ? <Image src={product.imageUrl} alt={product.name} fill sizes="(max-width: 800px) 50vw, 25vw" unoptimized /> : <span>No image</span>}<span className={`badge badge--${product.status}`}>{product.status}</span></div><div className="admin-product-card__body"><p className="eyebrow">{product.categoryName}</p><h3>{product.name}</h3><div><strong>{money(product.base_price)}</strong><span>{totalStock(product)} in stock</span></div><small>{product.variants.length} option{product.variants.length === 1 ? "" : "s"}</small></div></button>)}</div>
+    {editing ? <div className="admin-edit-modal" role="dialog" aria-modal="true"><form className="admin-edit-card admin-product-form" onSubmit={saveProduct}><button type="button" className="admin-edit-close" onClick={() => setEditing(null)}><X /></button><p className="eyebrow">{editing.id ? "EDIT PRODUCT" : "NEW PRODUCT"}</p><h2>{editing.id ? editing.name : "Add product"}</h2><div className="admin-product-form__hero"><label className="admin-product-upload">{editing.imageUrl ? <Image src={editing.imageUrl} alt={editing.name || "Product"} fill unoptimized /> : <Plus />}<input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) setEditing({ ...editing, file, imageUrl: URL.createObjectURL(file) }); }} /><span>{editing.file ? "New image ready" : "Upload product image"}</span></label><div className="form-grid"><label className="field"><span>Name</span><input value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value, slug: editing.id ? editing.slug : slugify(event.target.value) })} required /></label><label className="field"><span>Slug</span><input value={editing.slug} onChange={(event) => setEditing({ ...editing, slug: event.target.value })} required /></label><label className="field"><span>Category</span><select value={editing.category_id ?? ""} onChange={(event) => setEditing({ ...editing, category_id: event.target.value || null })}><option value="">Uncategorized</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label><label className="field"><span>Base price</span><input type="number" min={0} value={editing.base_price} onChange={(event) => setEditing({ ...editing, base_price: Number(event.target.value) })} /></label><label className="field"><span>Previous price</span><input type="number" min={0} value={editing.compare_at_price ?? ""} onChange={(event) => setEditing({ ...editing, compare_at_price: event.target.value ? Number(event.target.value) : null })} /></label><label className="field"><span>Status</span><select value={editing.status} onChange={(event) => setEditing({ ...editing, status: event.target.value as AdminProduct["status"] })}><option value="active">Active</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label><label className="field full"><span>Description</span><textarea rows={4} value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label></div></div><div className="admin-variants-head"><div><p className="eyebrow">OPTIONS & STOCK</p><h3>Variants</h3></div><button type="button" className="button" onClick={addVariant}><Plus /> Add option</button></div><div className="admin-variant-list">{editing.variants.map((variant, index) => <div className="admin-variant-row" key={variant.id ?? index}><label><span>Option or size</span><input placeholder="Premium, Standard, M…" value={String(variant.option_values?.option ?? variant.size ?? "")} onChange={(event) => { const value = event.target.value; const isNamedOption = ["premium", "standard"].includes(value.toLowerCase()); updateVariant(index, { size: isNamedOption ? null : value || null, option_values: isNamedOption ? { option: value } : {} }); }} /></label><label><span>Colour</span><input value={variant.colour ?? ""} onChange={(event) => updateVariant(index, { colour: event.target.value })} /></label><label><span>Price</span><input type="number" min={0} placeholder={String(editing.base_price)} value={variant.price_override ?? ""} onChange={(event) => updateVariant(index, { price_override: event.target.value ? Number(event.target.value) : null })} /></label><label><span>Stock</span><input type="number" min={0} value={variant.stock_quantity} onChange={(event) => updateVariant(index, { stock_quantity: Number(event.target.value) })} /></label><button type="button" onClick={() => removeVariant(index)} aria-label={`Remove ${variantLabel(variant)}`}>×</button></div>)}</div><label className="admin-check"><input type="checkbox" checked={editing.featured} onChange={(event) => setEditing({ ...editing, featured: event.target.checked })} /> Featured product</label><div className="admin-modal-actions"><button className="button" disabled={saving}>{saving ? "Saving…" : "Save product"}</button>{editing.id ? <button className="admin-delete-button" type="button" onClick={() => void deleteProduct()} disabled={saving}>Delete product</button> : null}</div></form></div> : null}
+  </div>;
 }

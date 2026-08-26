@@ -91,7 +91,7 @@
 }
 
 .hero > .hero-scene .hero-scene-label img {
-  width: min(34vw, 420px);
+  width: min(28vw, 350px);
   height: auto;
   filter: drop-shadow(0 18px 42px rgba(0, 0, 0, 0.55));
 }
