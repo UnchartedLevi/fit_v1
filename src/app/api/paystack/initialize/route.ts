@@ -20,6 +20,20 @@ const Body = z.object({
       }),
     )
     .min(1),
+  shipping: z
+    .object({
+      id: z.string(),
+      zone_name: z.string(),
+      price: z.number().nonnegative(),
+      eta: z.string().optional(),
+    })
+    .optional(),
+  coupon: z
+    .object({
+      code: z.string(),
+      discount: z.number().nonnegative(),
+    })
+    .optional(),
 });
 
 type CheckoutProduct = {
@@ -116,12 +130,19 @@ export async function POST(req: Request) {
       data: { user },
     } = session ? await session.auth.getUser() : { data: { user: null } };
 
+    const deliveryFee = body.shipping?.price ?? 0;
+    const discountAmount = body.coupon?.discount ?? 0;
+    const totalAmount = Math.max(0, subtotal + deliveryFee - discountAmount);
+
     const orderNumber = generateOrderNumber();
     const reference = `${orderNumber}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const deliverySnapshot = {
       recipient_name: body.customer.name,
       phone: body.customer.phone,
       address_line_1: body.customer.address.trim(),
+      shipping_zone: body.shipping?.zone_name ?? "Campus Delivery",
+      shipping_eta: body.shipping?.eta ?? "",
+      coupon_code: body.coupon?.code ?? null,
       city: "Ota",
       state: "Ogun",
       country: "Nigeria",
@@ -140,10 +161,10 @@ export async function POST(req: Request) {
         fulfilment_status: "unfulfilled",
         currency: "NGN",
         subtotal,
-        discount_amount: 0,
-        delivery_fee: 0,
+        discount_amount: discountAmount,
+        delivery_fee: deliveryFee,
         tax_amount: 0,
-        total_amount: subtotal,
+        total_amount: totalAmount,
         delivery_address_snapshot: deliverySnapshot,
         paystack_reference: reference,
       })
@@ -159,10 +180,10 @@ export async function POST(req: Request) {
       order_id: order.id,
       provider: "paystack",
       provider_reference: reference,
-      amount: subtotal,
+      amount: totalAmount,
       currency: "NGN",
       status: "pending",
-      metadata: { order_number: orderNumber },
+      metadata: { order_number: orderNumber, coupon: body.coupon?.code, shipping_zone: body.shipping?.zone_name },
     });
     if (paymentError) throw paymentError;
 
@@ -175,11 +196,17 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         email: body.customer.email,
-        amount: subtotal * 100,
+        amount: totalAmount * 100,
         currency: "NGN",
         reference,
         callback_url: `${origin}/checkout/callback`,
-        metadata: { order_id: order.id, order_number: orderNumber, customer_name: body.customer.name },
+        metadata: {
+          order_id: order.id,
+          order_number: orderNumber,
+          customer_name: body.customer.name,
+          shipping_zone: body.shipping?.zone_name,
+          coupon_code: body.coupon?.code,
+        },
       }),
     });
 

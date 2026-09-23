@@ -59,7 +59,9 @@ export type ProductRecord = {
   featured: boolean;
   average_rating: number;
   review_count: number;
-  categories?: CategoryRecord | null;
+  is_sbu?: boolean;
+  category_ids?: string[];
+  categories?: CategoryRecord | CategoryRecord[] | null;
   product_images?: ProductImageRecord[];
   product_variants?: ProductVariantRecord[];
 };
@@ -76,6 +78,9 @@ export type StoreProduct = {
   currency: string;
   category: string;
   categorySlug?: string;
+  category_ids?: string[];
+  categories?: string[];
+  is_sbu?: boolean;
   images: string[];
   variants: ProductVariantRecord[];
   sizes: string[];
@@ -83,6 +88,26 @@ export type StoreProduct = {
   stock_quantity: number;
   is_active: boolean;
   featured: boolean;
+};
+
+export type ShippingMethod = {
+  id: string;
+  zone_name: string;
+  description: string;
+  price: number;
+  eta: string;
+  is_active: boolean;
+  sort_order?: number;
+};
+
+export type CouponCode = {
+  id: string;
+  code: string;
+  type: "percentage" | "fixed";
+  value: number;
+  min_spend?: number;
+  is_active: boolean;
+  times_used?: number;
 };
 
 export type AddressRecord = {

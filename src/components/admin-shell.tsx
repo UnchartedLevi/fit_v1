@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, CreditCard, LayoutDashboard, Package, ShoppingBag, Store } from "lucide-react";
+import { ArrowUpRight, CreditCard, LayoutDashboard, Package, ShoppingBag, Store, Tag, Truck } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/shipping", label: "Shipping", icon: Truck },
+  { href: "/admin/coupon-codes", label: "Coupon Codes", icon: Tag },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
 ];
 

@@ -140,10 +140,52 @@ button {
 .shop-hero__copy { max-width: 680px; }
 .shop-hero h1 { font-size: clamp(62px, 10vw, 150px); line-height: .78; letter-spacing: -.075em; margin: 42px 0 28px; }
 .shop-hero__copy p { color: #ddd; font-size: clamp(16px, 2vw, 22px); max-width: 520px; margin-bottom: 32px; }
-.shop-hero__tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid rgba(255,255,255,.4); margin-top: 70px; }
-.shop-hero__tabs button { border: 0; border-right: 1px solid rgba(255,255,255,.25); background: transparent; color: #aaa; padding: 20px 16px; text-align: left; text-transform: uppercase; font-weight: 800; }
-.shop-hero__tabs button span { display: block; font-size: 9px; margin-bottom: 5px; }
-.shop-hero__tabs button.active { color: white; background: rgba(255,255,255,.12); }
+.shop-hero__dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 40px;
+  align-self: center;
+  padding: 12px 22px;
+  background: rgba(15, 15, 15, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.shop-hero__dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease, box-shadow 0.25s ease;
+}
+.shop-hero__dot::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+}
+.shop-hero__dot:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.7);
+  transform: scale(1.15);
+}
+.shop-hero__dot.active {
+  background: #ffffff;
+  transform: scale(1.22);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.9);
+}
+.shop-hero__dot:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
 .payment-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.72); backdrop-filter: blur(7px); }
 .payment-modal, .payment-result { width: min(520px, 100%); background: #fff; color: #111; padding: clamp(30px, 6vw, 64px); text-align: center; box-shadow: 0 30px 100px rgba(0,0,0,.35); }
 .payment-modal h2, .payment-result h1 { font-size: clamp(30px, 5vw, 54px); line-height: .95; letter-spacing: -.045em; margin: 18px 0; }
@@ -152,7 +194,11 @@ button {
 .payment-result > svg { width: 54px; height: 54px; padding: 13px; border-radius: 50%; background: #151515; color: white; }
 .payment-result--error > svg { background: #be2424; }
 @keyframes payment-spin { to { transform: rotate(360deg); } }
-@media (max-width: 700px) { .shop-hero__tabs { grid-template-columns: repeat(2, 1fr); } .shop-hero { min-height: 640px; } }
+@media (max-width: 600px) {
+  .shop-hero { min-height: 560px; padding-bottom: 28px; }
+  .shop-hero__dots { gap: 12px; padding: 8px 16px; margin-top: 24px; }
+  .shop-hero__dot { width: 12px; height: 12px; }
+}
 .admin-orders-table tbody tr { cursor: pointer; transition: transform .18s ease, background .18s ease; }
 .admin-orders-table tbody tr:hover, .admin-orders-table tbody tr.is-selected { background: #f0efe9; transform: scale(1.008); }
 .admin-edit-modal { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.72); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 24px; }
