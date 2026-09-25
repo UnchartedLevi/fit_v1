@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const slides = [
@@ -66,9 +64,6 @@ export function ShopHero() {
         <span className="eyebrow">SHOP / {slide.label.toUpperCase()}</span>
         <h1>{slide.title}</h1>
         <p>{slide.copy}</p>
-        <Link className="button light-button" href={slide.href}>
-          Shop now <ArrowRight />
-        </Link>
       </div>
       <div className="shop-hero__dots" role="tablist" aria-label="Shop slides">
         {slides.map((item, index) => (

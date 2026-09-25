@@ -24,17 +24,9 @@ export default async function Home() {
           </h1>
           <p>Campus ready football pieces made for the tunnel, the stands, and every move after class.</p>
           <div className="hero-actions">
-            <Link className="button light-button" href="/products">
+            <Link className="button light-button hero-main-cta" href="/products" prefetch={true}>
               Shop the collection <ArrowRight />
             </Link>
-            <Link className="button ghost-button" href="/spotlight">
-              Discover the drop <ArrowRight />
-            </Link>
-          </div>
-          <div className="hero-quick-links" aria-label="Featured categories">
-            <Link href="/products?category=Jerseys">Jerseys</Link>
-            <Link href="/products?category=Sets">Sets</Link>
-            <Link href="/products?category=Accessories">Accessories</Link>
           </div>
         </div>
         <HeroScene />

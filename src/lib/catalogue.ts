@@ -64,6 +64,20 @@ function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, 
   };
 }
 
+let cachedCategories: { data: { name: string; slug: string }[]; expiry: number } | null = null;
+let cachedMetadata: { data: Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>; expiry: number } | null = null;
+
+async function getCachedMetadata(supabase: any) {
+  const now = Date.now();
+  if (cachedMetadata && cachedMetadata.expiry > now) {
+    return cachedMetadata.data;
+  }
+  const { data } = await supabase.from("site_content").select("value").eq("key", "product_metadata").maybeSingle();
+  const map = (data?.value as Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
+  cachedMetadata = { data: map, expiry: now + 30_000 };
+  return map;
+}
+
 export async function listProducts(query: ProductQuery = {}): Promise<StoreProduct[]> {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -85,14 +99,13 @@ export async function listProducts(query: ProductQuery = {}): Promise<StoreProdu
   else if (query.sort === "high") request = request.order("base_price", { ascending: false });
   else request = request.order("created_at", { ascending: false });
 
-  const [{ data, error }, { data: contentData }] = await Promise.all([
+  const [{ data, error }, metadataMap] = await Promise.all([
     request.limit(100),
-    supabase.from("site_content").select("value").eq("key", "product_metadata").maybeSingle(),
+    getCachedMetadata(supabase),
   ]);
 
   if (error || !data) return [];
 
-  const metadataMap = (contentData?.value as Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
   let products = (data as ProductRecord[]).map((r) => mapRecordToProduct(r, metadataMap));
 
   if (query.category) {
@@ -114,7 +127,7 @@ export async function getProductBySlug(slug: string): Promise<StoreProduct | nul
   const supabase = await createClient();
   if (!supabase) return null;
 
-  const [{ data, error }, { data: contentData }] = await Promise.all([
+  const [{ data, error }, metadataMap] = await Promise.all([
     supabase
       .from("products")
       .select(
@@ -128,16 +141,20 @@ export async function getProductBySlug(slug: string): Promise<StoreProduct | nul
       .eq("slug", slug)
       .eq("status", "active")
       .single(),
-    supabase.from("site_content").select("value").eq("key", "product_metadata").maybeSingle(),
+    getCachedMetadata(supabase),
   ]);
 
   if (error || !data) return null;
 
-  const metadataMap = (contentData?.value as Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
   return mapRecordToProduct(data as ProductRecord, metadataMap);
 }
 
 export async function listCategories() {
+  const now = Date.now();
+  if (cachedCategories && cachedCategories.expiry > now) {
+    return cachedCategories.data;
+  }
+
   const supabase = await createClient();
   if (!supabase) return fallbackCategories;
 
@@ -160,6 +177,7 @@ export async function listCategories() {
     return a.name.localeCompare(b.name);
   });
 
+  cachedCategories = { data: sorted, expiry: now + 60_000 };
   return sorted;
 }
 

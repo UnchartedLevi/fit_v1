@@ -40,6 +40,21 @@ body {
   border-radius: 999px;
 }
 
+.hero-actions .hero-main-cta {
+  min-width: clamp(280px, 32vw, 390px);
+  padding: 19px 36px;
+  justify-content: space-between;
+  letter-spacing: 0.12em;
+  font-size: 13px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.hero-actions .hero-main-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(203, 108, 231, 0.28), 0 4px 12px rgba(255, 255, 255, 0.15);
+}
+
 .ghost-button {
   border-color: rgba(255, 255, 255, 0.42);
   color: #fff;

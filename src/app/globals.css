@@ -2245,3 +2245,19 @@ th {
 .admin-variant-row > button { border: 0; background: #111; color: #fff; width: 40px; height: 40px; font-size: 21px; }
 @media (max-width: 1000px) { .admin-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .admin-product-form__hero { grid-template-columns: 1fr; } .admin-product-upload { max-width: 360px; } }
 @media (max-width: 650px) { .admin-catalogue-toolbar { align-items: stretch; flex-direction: column; } .admin-product-grid { grid-template-columns: 1fr 1fr; gap: 8px; } .admin-variant-row { grid-template-columns: 1fr 1fr; } .admin-variant-row > button { width: 100%; } }
+
+@keyframes fits-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes fits-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+@keyframes fits-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
