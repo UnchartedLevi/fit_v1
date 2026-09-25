@@ -258,11 +258,11 @@ body {
   animation-delay: var(--shine-delay, 0s);
 }
 
-.hero-picture-one { --tilt: -10deg; --float-x: -12px; --float-y: -20px; --float-rotate: -3deg; --float-duration: 9s; --float-delay: -1s; --shine-delay: 1s; right: 30%; top: 13%; background-image: url('/hero/football.png'); }
-.hero-picture-two { --tilt: 7deg; --float-x: 13px; --float-y: -16px; --float-rotate: 3deg; --float-duration: 10s; --float-delay: -4s; --shine-delay: 4s; right: 13%; top: 22%; background-image: url('/hero/basketball.png'); }
-.hero-picture-three { --tilt: -4deg; --float-x: -10px; --float-y: 16px; --float-rotate: 2deg; --float-duration: 8.5s; --float-delay: -2s; --shine-delay: 7s; right: 37%; bottom: 12%; background-image: url('/hero/jerseys.png'); }
-.hero-picture-four { --tilt: 11deg; --float-x: 12px; --float-y: 18px; --float-rotate: -3deg; --float-duration: 11s; --float-delay: -6s; --shine-delay: 2s; right: 6%; bottom: 18%; background-image: url('/hero/gym-fitness.png'); }
-.hero-picture-five { --tilt: 3deg; --float-x: -8px; --float-y: -14px; --float-rotate: 2deg; --float-duration: 9.5s; --float-delay: -3s; --shine-delay: 6s; right: 22%; bottom: 6%; background-image: url('/hero/accessories.jpg'); }
+.hero-picture-one { --tilt: -10deg; --float-x: -12px; --float-y: -20px; --float-rotate: -3deg; --float-duration: 9s; --float-delay: -1s; --shine-delay: 1s; right: 30%; top: 13%; background-image: url('/hero/fits-hero-1.jpg'); }
+.hero-picture-two { --tilt: 7deg; --float-x: 13px; --float-y: -16px; --float-rotate: 3deg; --float-duration: 10s; --float-delay: -4s; --shine-delay: 4s; right: 13%; top: 22%; background-image: url('/hero/fits-hero-2.jpg'); }
+.hero-picture-three { --tilt: -4deg; --float-x: -10px; --float-y: 16px; --float-rotate: 2deg; --float-duration: 8.5s; --float-delay: -2s; --shine-delay: 7s; right: 37%; bottom: 12%; background-image: url('/hero/fits-hero-3.jpg'); }
+.hero-picture-four { --tilt: 11deg; --float-x: 12px; --float-y: 18px; --float-rotate: -3deg; --float-duration: 11s; --float-delay: -6s; --shine-delay: 2s; right: 6%; bottom: 18%; background-image: url('/hero/fits-hero-4.jpg'); }
+.hero-picture-five { --tilt: 3deg; --float-x: -8px; --float-y: -14px; --float-rotate: 2deg; --float-duration: 9.5s; --float-delay: -3s; --shine-delay: 6s; right: 22%; bottom: 6%; background-image: url('/hero/fits-hero-5.jpg'); }
 
 @keyframes hero-card-float {
   0%, 100% {
