@@ -5,20 +5,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
-  async rewrites() {
-    return [
-      {
-        source: "/",
-        has: [{ type: "host", value: "shop.fits4l.xyz" }],
-        destination: "/products",
-      },
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "shop.fits4l.xyz" }],
-        destination: "/products/:path*",
-      },
-    ];
-  },
   async redirects() {
     return [
       {

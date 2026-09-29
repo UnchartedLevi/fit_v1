@@ -18,11 +18,15 @@ function HeaderSearch() {
     setTerm(searchParams?.get("q") || "");
   }, [searchParams]);
 
+  const isShopPage =
+    pathname === "/products" ||
+    (typeof document !== "undefined" && !!document.getElementById("products"));
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTerm(val);
 
-    if (pathname === "/products") {
+    if (isShopPage) {
       window.dispatchEvent(new CustomEvent("fits:search", { detail: val }));
       const url = new URL(window.location.href);
       if (val) url.searchParams.set("q", val);
@@ -33,14 +37,14 @@ function HeaderSearch() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pathname !== "/products") {
+    if (!isShopPage) {
       router.push(`/products?q=${encodeURIComponent(term)}`);
     }
   };
 
   const handleClear = () => {
     setTerm("");
-    if (pathname === "/products") {
+    if (isShopPage) {
       window.dispatchEvent(new CustomEvent("fits:search", { detail: "" }));
       const url = new URL(window.location.href);
       url.searchParams.delete("q");
