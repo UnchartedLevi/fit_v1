@@ -1,12 +1,79 @@
 "use client";
 
 import Image from "next/image";
-
 import Link from "next/link";
 import { LogOut, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "./cart-provider";
+
+function HeaderSearch() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const [term, setTerm] = useState(searchParams?.get("q") || "");
+
+  useEffect(() => {
+    setTerm(searchParams?.get("q") || "");
+  }, [searchParams]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setTerm(val);
+
+    if (pathname === "/products") {
+      window.dispatchEvent(new CustomEvent("fits:search", { detail: val }));
+      const url = new URL(window.location.href);
+      if (val) url.searchParams.set("q", val);
+      else url.searchParams.delete("q");
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pathname !== "/products") {
+      router.push(`/products?q=${encodeURIComponent(term)}`);
+    }
+  };
+
+  const handleClear = () => {
+    setTerm("");
+    if (pathname === "/products") {
+      window.dispatchEvent(new CustomEvent("fits:search", { detail: "" }));
+      const url = new URL(window.location.href);
+      url.searchParams.delete("q");
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="nav-search-form" role="search">
+      <div className="nav-search-box">
+        <Search size={15} className="nav-search-icon" />
+        <input
+          type="search"
+          value={term}
+          onChange={handleChange}
+          placeholder="Search products..."
+          aria-label="Search products"
+          className="nav-search-input"
+        />
+        {term ? (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="nav-search-clear"
+            aria-label="Clear search"
+          >
+            <X size={14} />
+          </button>
+        ) : null}
+      </div>
+    </form>
+  );
+}
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
@@ -80,7 +147,9 @@ export function SiteHeader() {
         {isAdmin === true ? <Link className="admin-portal-button" href="/admin">Admin portal</Link> : null}
       </nav>
       <div className="header-actions">
-        <Link href="/products" aria-label="Search"><Search /></Link>
+        <Suspense fallback={<div className="nav-search-box-skeleton" />}>
+          <HeaderSearch />
+        </Suspense>
         {email ? (
           <>
             <Link href="/auth/login" className="account-initial" aria-label={`Signed in as ${email}`}>{email[0]?.toUpperCase()}</Link>

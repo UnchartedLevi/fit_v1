@@ -19,7 +19,7 @@ const fallbackCategories = [
   { name: "Fashion & Lifestyle", slug: "fashion-lifestyle" },
 ];
 
-function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>): StoreProduct {
+function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>): StoreProduct {
   const images = (record.product_images ?? [])
     .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order)
     .map((image) => image.image_url);
@@ -35,6 +35,7 @@ function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, 
   
   const meta = metadataMap?.[record.id];
   const is_sbu = meta?.is_sbu !== undefined ? meta.is_sbu : (record.is_sbu ?? true);
+  const featured = meta?.featured !== undefined ? meta.featured : Boolean(record.featured);
   const category_ids = meta?.category_ids || record.category_ids || (record.category_id ? [record.category_id] : []);
   const extraCategories = meta?.categories || [];
   const mergedCategories = [...new Set([...categoriesArray, ...extraCategories])];
@@ -60,12 +61,12 @@ function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, 
     colours,
     stock_quantity: stock,
     is_active: record.status === "active",
-    featured: record.featured,
+    featured,
   };
 }
 
 let cachedCategories: { data: { name: string; slug: string }[]; expiry: number } | null = null;
-let cachedMetadata: { data: Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>; expiry: number } | null = null;
+let cachedMetadata: { data: Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>; expiry: number } | null = null;
 
 async function getCachedMetadata(supabase: any) {
   const now = Date.now();
@@ -73,7 +74,7 @@ async function getCachedMetadata(supabase: any) {
     return cachedMetadata.data;
   }
   const { data } = await supabase.from("site_content").select("value").eq("key", "product_metadata").maybeSingle();
-  const map = (data?.value as Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
+  const map = (data?.value as Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
   cachedMetadata = { data: map, expiry: now + 30_000 };
   return map;
 }
@@ -120,6 +121,12 @@ export async function listProducts(query: ProductQuery = {}): Promise<StoreProdu
 
   if (query.size) products = products.filter((product) => product.sizes.includes(query.size as string));
   if (query.colour) products = products.filter((product) => product.colours.includes(query.colour as string));
+
+  // Prioritize featured items first before default sorting
+  if (!query.sort || query.sort === "new") {
+    products.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+  }
+
   return products;
 }
 

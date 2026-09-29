@@ -57,28 +57,16 @@ export function ShopHero() {
     <section
       className="shop-hero"
       style={{
-        backgroundImage: `linear-gradient(90deg, rgba(0,0,0,0.85), rgba(0,0,0,0.28)), url(${slide.image})`,
+        backgroundImage: `linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.3) 100%), url(${slide.image})`,
       }}
     >
-      <div className="shop-hero__copy">
-        <span className="eyebrow">SHOP / {slide.label.toUpperCase()}</span>
-        <h1>{slide.title}</h1>
-        <p>{slide.copy}</p>
-      </div>
-      <div className="shop-hero__dots" role="tablist" aria-label="Shop slides">
-        {slides.map((item, index) => (
-          <button
-            key={item.label}
-            type="button"
-            role="tab"
-            aria-selected={active === index}
-            aria-label={`Slide ${index + 1}: ${item.label}`}
-            className={`shop-hero__dot ${active === index ? "active" : ""}`}
-            onClick={() => setActive(index)}
-          />
-        ))}
+      <div className="shop-hero__container">
+        <div className="shop-hero__copy">
+          <span className="eyebrow">SHOP / {slide.label.toUpperCase()}</span>
+          <h1>{slide.title}</h1>
+          <p>{slide.copy}</p>
+        </div>
       </div>
     </section>
   );
 }
-

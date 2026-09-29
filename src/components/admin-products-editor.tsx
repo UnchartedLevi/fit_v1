@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Check, ChevronDown, Plus, Search, Tag, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Search, Star, Tag, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { money } from "@/lib/products";
@@ -62,7 +62,7 @@ const variantLabel = (variant: EditableVariant) => String(variant.option_values?
 
 function normalizeProduct(
   product: RawProduct,
-  metadataMap?: Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>
+  metadataMap?: Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>
 ): AdminProduct {
   const category = Array.isArray(product.categories) ? product.categories[0] : product.categories;
   const categoriesList = Array.isArray(product.categories) ? product.categories.map((c) => c.name) : category ? [category.name] : [];
@@ -71,6 +71,7 @@ function normalizeProduct(
 
   const meta = metadataMap?.[product.id];
   const is_sbu = meta?.is_sbu !== undefined ? meta.is_sbu : product.is_sbu !== undefined ? product.is_sbu : true;
+  const featured = meta?.featured !== undefined ? meta.featured : Boolean(product.featured);
   const category_ids = meta?.category_ids || product.category_ids || (product.category_id ? [product.category_id] : []);
   const extraCategories = meta?.categories || [];
   const mergedCategories = [...new Set([...categoriesList, ...extraCategories])];
@@ -88,7 +89,7 @@ function normalizeProduct(
     base_price: product.base_price,
     compare_at_price: product.compare_at_price,
     status: product.status,
-    featured: product.featured,
+    featured,
     imageUrl: primaryImage?.image_url ?? "",
     imageId: primaryImage?.id,
     variants: (product.product_variants ?? [])
@@ -162,7 +163,7 @@ export function AdminProductsEditor() {
       return toast.error(categoryError?.message || productError?.message || "Could not load products.");
     }
 
-    const metadataMap = (metaData?.value as Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
+    const metadataMap = (metaData?.value as Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
     setCategories((categoryData ?? []) as CategoryOption[]);
     setProducts(((productData ?? []) as unknown as RawProduct[]).map((p) => normalizeProduct(p, metadataMap)));
   }, [client]);
@@ -247,12 +248,13 @@ export function AdminProductsEditor() {
       if (productResult.error || !productResult.data) throw productResult.error ?? new Error("Could not save product.");
       const productId = productResult.data.id as string;
 
-      // Sync SBU and Multi-categories to site_content product_metadata
+      // Sync SBU, Featured, and Multi-categories to site_content product_metadata
       try {
         const { data: metaData } = await client.from("site_content").select("value").eq("key", "product_metadata").maybeSingle();
-        const metadataMap = (metaData?.value as Record<string, { is_sbu?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
+        const metadataMap = (metaData?.value as Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
         metadataMap[productId] = {
           is_sbu: editing.is_sbu,
+          featured: editing.featured,
           category_ids: editing.category_ids || [],
           categories: selectedCategoryNames,
         };
@@ -360,7 +362,40 @@ export function AdminProductsEditor() {
                 <span>No image</span>
               )}
               <span className={`badge badge--${product.status}`}>{product.status}</span>
-              {product.is_sbu && <span className="badge" style={{ left: 10, right: "auto", background: "#111", color: "#fff", border: "1px solid rgba(255,255,255,0.2)" }}>SBU</span>}
+              {product.is_sbu && (
+                <span
+                  className="badge"
+                  style={{
+                    top: 10,
+                    right: 10,
+                    left: "auto",
+                    background: "#111",
+                    color: "#fff",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                  }}
+                >
+                  SBU
+                </span>
+              )}
+              {product.featured && (
+                <span
+                  className="admin-featured-star"
+                  title="Featured product"
+                  style={{
+                    position: "absolute",
+                    bottom: 10,
+                    right: 10,
+                    zIndex: 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#000",
+                    filter: "drop-shadow(0 0 1.5px rgba(255,255,255,0.95)) drop-shadow(0 1px 2px rgba(0,0,0,0.35))",
+                  }}
+                >
+                  <Star size={20} fill="#000" stroke="#000" />
+                </span>
+              )}
             </div>
             <div className="admin-product-card__body">
               <p className="eyebrow">{product.categoryName}</p>

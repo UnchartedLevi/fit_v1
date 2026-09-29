@@ -5,37 +5,46 @@ export function ProductsLoadingSkeleton() {
 
   return (
     <div className="products-loading-wrapper" aria-busy="true" aria-label="Loading products">
-      {/* Search and Filters Skeleton */}
-      <div style={{ marginBottom: "20px" }}>
-        <div
-          style={{
-            maxWidth: "600px",
-            height: "44px",
-            borderRadius: "999px",
-            background: "linear-gradient(90deg, #161616 0%, #222 50%, #161616 100%)",
-            backgroundSize: "200% 100%",
-            animation: "fits-shimmer 1.8s infinite linear",
-            marginBottom: "16px",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        />
-
-        <div className="filters" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          {[140, 110, 120].map((width, i) => (
+      {/* Single-Line Category and Filter Button Skeleton */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "16px",
+          borderBottom: "1px solid rgba(0,0,0,0.08)",
+          paddingBottom: "16px",
+          marginBottom: "28px",
+        }}
+      >
+        <div style={{ display: "flex", gap: "20px", alignItems: "center", overflow: "hidden" }}>
+          {[48, 80, 95, 75, 110, 85].map((width, i) => (
             <div
               key={i}
               style={{
                 width: `${width}px`,
-                height: "38px",
-                borderRadius: "999px",
-                background: "linear-gradient(90deg, #161616 0%, #222 50%, #161616 100%)",
+                height: "20px",
+                borderRadius: "4px",
+                background: "linear-gradient(90deg, #e4e3dd 0%, #edece6 50%, #e4e3dd 100%)",
                 backgroundSize: "200% 100%",
                 animation: "fits-shimmer 1.8s infinite linear",
-                border: "1px solid rgba(255,255,255,0.08)",
               }}
             />
           ))}
         </div>
+
+        <div
+          style={{
+            width: "120px",
+            height: "36px",
+            borderRadius: "4px",
+            flexShrink: 0,
+            background: "linear-gradient(90deg, #e4e3dd 0%, #edece6 50%, #e4e3dd 100%)",
+            backgroundSize: "200% 100%",
+            animation: "fits-shimmer 1.8s infinite linear",
+            border: "1px solid rgba(0,0,0,0.12)",
+          }}
+        />
       </div>
 
       {/* Loading Status Indicator */}

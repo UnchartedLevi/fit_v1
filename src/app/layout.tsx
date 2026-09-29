@@ -4,7 +4,7 @@ import "./hero.css";
 import { CartProvider } from "@/components/cart-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/toaster";
 
 const siteUrl = "https://fits4l.xyz";
 const description = "Premium sportswear and football-inspired streetwear from Covenant University, Ota, Nigeria.";
