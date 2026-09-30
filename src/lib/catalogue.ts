@@ -1,5 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
+import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { ProductRecord, StoreProduct } from "@/lib/commerce-types";
+import { isSelectableSize } from "@/lib/product-options";
 
 type ProductQuery = {
   category?: string;
@@ -24,7 +27,7 @@ function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, 
     .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order)
     .map((image) => image.image_url);
   const variants = (record.product_variants ?? []).filter((variant) => variant.is_active);
-  const sizes = [...new Set(variants.map((variant) => variant.size).filter((size) => size && !["premium", "standard"].includes(size.toLowerCase())))] as string[];
+  const sizes = [...new Set(variants.map((variant) => variant.size).filter((size): size is string => isSelectableSize(size)))] as string[];
   const colours = [...new Set(variants.map((variant) => variant.colour).filter(Boolean))] as string[];
   const stock = variants.reduce((total, variant) => total + variant.stock_quantity, 0);
 
@@ -65,49 +68,65 @@ function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, 
   };
 }
 
-let cachedCategories: { data: { name: string; slug: string }[]; expiry: number } | null = null;
-let cachedMetadata: { data: Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>; expiry: number } | null = null;
+type ProductMetadata = Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>;
+type CatalogueSnapshot = {
+  products: StoreProduct[];
+  categories: { name: string; slug: string }[];
+};
 
-async function getCachedMetadata(supabase: any) {
-  const now = Date.now();
-  if (cachedMetadata && cachedMetadata.expiry > now) {
-    return cachedMetadata.data;
+const getCatalogueSnapshot = unstable_cache(
+  async (): Promise<CatalogueSnapshot> => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return { products: [], categories: fallbackCategories };
+
+    const supabase = createPublicClient(url, key, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const [productResult, categoryResult, metadataResult] = await Promise.all([
+      supabase
+        .from("products")
+        .select("*,categories(*),product_images(*),product_variants(*)")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase.from("categories").select("name,slug").eq("is_active", true).order("sort_order", { ascending: true }),
+      supabase.from("site_content").select("value").eq("key", "product_metadata").maybeSingle(),
+    ]);
+
+    if (productResult.error) throw productResult.error;
+    const metadataMap = (metadataResult.data?.value as ProductMetadata) || {};
+    return {
+      products: ((productResult.data ?? []) as ProductRecord[]).map((record) => mapRecordToProduct(record, metadataMap)),
+      categories: categoryResult.error || !categoryResult.data?.length ? fallbackCategories : categoryResult.data,
+    };
+  },
+  ["fits-public-catalogue-v1"],
+  { revalidate: 30, tags: ["fits-catalogue"] },
+);
+
+const readCatalogueSnapshot = cache(async () => {
+  try {
+    return await getCatalogueSnapshot();
+  } catch (error) {
+    console.error("Unable to load the public catalogue", error);
+    return { products: [], categories: fallbackCategories } satisfies CatalogueSnapshot;
   }
-  const { data } = await supabase.from("site_content").select("value").eq("key", "product_metadata").maybeSingle();
-  const map = (data?.value as Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>) || {};
-  cachedMetadata = { data: map, expiry: now + 30_000 };
-  return map;
-}
+});
 
 export async function listProducts(query: ProductQuery = {}): Promise<StoreProduct[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
+  const snapshot = await readCatalogueSnapshot();
+  let products = [...snapshot.products];
 
-  let request = supabase
-    .from("products")
-    .select(
-      `
-        *,
-        categories(*),
-        product_images(*),
-        product_variants(*)
-      `,
-    )
-    .eq("status", "active");
-
-  if (query.q) request = request.textSearch("name", query.q, { type: "websearch" });
-  if (query.sort === "low") request = request.order("base_price", { ascending: true });
-  else if (query.sort === "high") request = request.order("base_price", { ascending: false });
-  else request = request.order("created_at", { ascending: false });
-
-  const [{ data, error }, metadataMap] = await Promise.all([
-    request.limit(100),
-    getCachedMetadata(supabase),
-  ]);
-
-  if (error || !data) return [];
-
-  let products = (data as ProductRecord[]).map((r) => mapRecordToProduct(r, metadataMap));
+  if (query.q) {
+    const target = query.q.toLowerCase().trim();
+    products = products.filter((product) =>
+      [product.name, product.description, product.brand, product.category, ...(product.categories ?? [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(target),
+    );
+  }
 
   if (query.category) {
     const target = query.category.toLowerCase().trim();
@@ -122,8 +141,10 @@ export async function listProducts(query: ProductQuery = {}): Promise<StoreProdu
   if (query.size) products = products.filter((product) => product.sizes.includes(query.size as string));
   if (query.colour) products = products.filter((product) => product.colours.includes(query.colour as string));
 
-  // Prioritize featured items first before default sorting
-  if (!query.sort || query.sort === "new") {
+  if (query.sort === "low") products.sort((a, b) => a.price - b.price);
+  else if (query.sort === "high") products.sort((a, b) => b.price - a.price);
+  // Prioritize featured items first before default sorting.
+  else {
     products.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
   }
 
@@ -131,51 +152,16 @@ export async function listProducts(query: ProductQuery = {}): Promise<StoreProdu
 }
 
 export async function getProductBySlug(slug: string): Promise<StoreProduct | null> {
-  const supabase = await createClient();
-  if (!supabase) return null;
-
-  const [{ data, error }, metadataMap] = await Promise.all([
-    supabase
-      .from("products")
-      .select(
-        `
-          *,
-          categories(*),
-          product_images(*),
-          product_variants(*)
-        `,
-      )
-      .eq("slug", slug)
-      .eq("status", "active")
-      .single(),
-    getCachedMetadata(supabase),
-  ]);
-
-  if (error || !data) return null;
-
-  return mapRecordToProduct(data as ProductRecord, metadataMap);
+  const snapshot = await readCatalogueSnapshot();
+  return snapshot.products.find((product) => product.slug === slug) ?? null;
 }
 
 export async function listCategories() {
-  const now = Date.now();
-  if (cachedCategories && cachedCategories.expiry > now) {
-    return cachedCategories.data;
-  }
-
-  const supabase = await createClient();
-  if (!supabase) return fallbackCategories;
-
-  const { data, error } = await supabase
-    .from("categories")
-    .select("name,slug")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  if (error || !data || !data.length) return fallbackCategories;
+  const { categories } = await readCatalogueSnapshot();
 
   // Filter to prioritize core 7 categories while keeping other active ones
   const requestedSlugs = ["football", "basketball", "gym-fitness", "jerseys", "accessories", "bundles", "fashion-lifestyle"];
-  const sorted = [...data].sort((a, b) => {
+  return [...categories].sort((a, b) => {
     const idxA = requestedSlugs.indexOf(a.slug);
     const idxB = requestedSlugs.indexOf(b.slug);
     if (idxA !== -1 && idxB !== -1) return idxA - idxB;
@@ -184,7 +170,5 @@ export async function listCategories() {
     return a.name.localeCompare(b.name);
   });
 
-  cachedCategories = { data: sorted, expiry: now + 60_000 };
-  return sorted;
 }
 

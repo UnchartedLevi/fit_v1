@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { Check, ChevronDown, Plus, Search, Star, Tag, X } from "lucide-react";
+import { ChevronDown, Plus, Search, Star, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { money } from "@/lib/products";
 import { createClient } from "@/lib/supabase/client";
 import type { ProductImageRecord, ProductVariantRecord } from "@/lib/commerce-types";
+import { getNamedOption, getProductPurchaseMode, getVariantChoiceLabel, isSelectableSize, type ProductPurchaseMode } from "@/lib/product-options";
 
 type CategoryOption = { id: string; name: string; slug: string };
 type EditableVariant = Omit<Pick<ProductVariantRecord, "id" | "sku" | "size" | "colour" | "option_values" | "price_override" | "stock_quantity" | "is_active">, "id"> & { id?: string };
@@ -27,9 +28,10 @@ type AdminProduct = {
   imageUrl: string;
   imageId?: string;
   variants: EditableVariant[];
+  purchaseMode: ProductPurchaseMode;
   file?: File | null;
 };
-type RawProduct = Omit<AdminProduct, "categoryName" | "imageUrl" | "variants" | "category_ids" | "categories" | "is_sbu"> & {
+type RawProduct = Omit<AdminProduct, "categoryName" | "imageUrl" | "variants" | "purchaseMode" | "category_ids" | "categories" | "is_sbu"> & {
   id: string;
   is_sbu?: boolean;
   category_ids?: string[];
@@ -52,13 +54,14 @@ const blankProduct = (): AdminProduct => ({
   status: "active",
   featured: false,
   imageUrl: "",
+  purchaseMode: "single",
   variants: [{ sku: "", size: null, colour: "Default", option_values: {}, price_override: null, stock_quantity: 0, is_active: true }],
   file: null,
 });
 
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 const totalStock = (product: AdminProduct) => product.variants.filter((variant) => variant.is_active).reduce((total, variant) => total + Number(variant.stock_quantity || 0), 0);
-const variantLabel = (variant: EditableVariant) => String(variant.option_values?.option ?? variant.size ?? (variant.colour && variant.colour !== "Default" ? variant.colour : "One Size"));
+const variantLabel = (variant: EditableVariant, mode: ProductPurchaseMode) => getVariantChoiceLabel(variant, mode);
 
 function normalizeProduct(
   product: RawProduct,
@@ -75,6 +78,18 @@ function normalizeProduct(
   const category_ids = meta?.category_ids || product.category_ids || (product.category_id ? [product.category_id] : []);
   const extraCategories = meta?.categories || [];
   const mergedCategories = [...new Set([...categoriesList, ...extraCategories])];
+  const variants = (product.product_variants ?? [])
+    .filter((variant) => variant.is_active)
+    .map((variant) => ({
+      id: variant.id,
+      sku: variant.sku,
+      size: variant.size,
+      colour: variant.colour,
+      price_override: variant.price_override,
+      stock_quantity: variant.stock_quantity,
+      option_values: variant.option_values,
+      is_active: variant.is_active,
+    }));
 
   return {
     id: product.id,
@@ -92,18 +107,8 @@ function normalizeProduct(
     featured,
     imageUrl: primaryImage?.image_url ?? "",
     imageId: primaryImage?.id,
-    variants: (product.product_variants ?? [])
-      .filter((variant) => variant.is_active)
-      .map((variant) => ({
-        id: variant.id,
-        sku: variant.sku,
-        size: variant.size,
-        colour: variant.colour,
-        price_override: variant.price_override,
-        stock_quantity: variant.stock_quantity,
-        option_values: variant.option_values,
-        is_active: variant.is_active,
-      })),
+    variants,
+    purchaseMode: getProductPurchaseMode(variants),
     file: null,
   };
 }
@@ -202,6 +207,22 @@ export function AdminProductsEditor() {
     });
   }
 
+  function changePurchaseMode(purchaseMode: ProductPurchaseMode) {
+    if (!editing) return;
+    const current = editing.variants[0] ?? blankProduct().variants[0];
+    const first: EditableVariant = {
+      ...current,
+      size: purchaseMode === "size" && isSelectableSize(current.size) ? current.size : null,
+      colour: purchaseMode === "colour" && current.colour !== "Default" ? current.colour : "Default",
+      option_values: purchaseMode === "option" && getNamedOption(current) ? { option: getNamedOption(current) } : {},
+    };
+    setEditing({
+      ...editing,
+      purchaseMode,
+      variants: purchaseMode === "single" ? [first] : [first, ...editing.variants.slice(1)],
+    });
+  }
+
   function addVariant() {
     if (!editing) return;
     setEditing({
@@ -226,6 +247,18 @@ export function AdminProductsEditor() {
     try {
       const slug = slugify(editing.slug || editing.name);
       if (!slug || !editing.name.trim()) throw new Error("Add a product name and slug.");
+      if (!editing.variants.length) throw new Error("Add stock information for this product.");
+      if (editing.purchaseMode !== "single" && editing.variants.length < 2) {
+        throw new Error(`Add at least two ${editing.purchaseMode} choices, or use Quantity only.`);
+      }
+
+      const choiceNames = editing.variants.map((variant) => variantLabel(variant, editing.purchaseMode).trim());
+      if (editing.purchaseMode !== "single" && choiceNames.some((value) => !value || ["Size", "Option", "Colour"].includes(value))) {
+        throw new Error(`Every ${editing.purchaseMode} choice needs a name.`);
+      }
+      if (new Set(choiceNames.map((value) => value.toLowerCase())).size !== choiceNames.length) {
+        throw new Error(`${editing.purchaseMode} choices must be unique.`);
+      }
 
       const primaryCategory = categories.find((item) => editing.category_ids?.includes(item.id)) ?? categories.find((item) => item.id === editing.category_id);
       const selectedCategoryNames = categories.filter((c) => editing.category_ids?.includes(c.id)).map((c) => c.name);
@@ -271,12 +304,13 @@ export function AdminProductsEditor() {
       }
 
       for (const [index, variant] of editing.variants.entries()) {
+        const choice = variantLabel(variant, editing.purchaseMode).trim();
         const variantPayload = {
           product_id: productId,
           sku: variant.sku.trim() || `FITS-${slug}-${index + 1}`.toUpperCase(),
-          size: typeof variant.option_values?.option === "string" ? null : variant.size?.trim() || null,
-          colour: variant.colour?.trim() || "Default",
-          option_values: typeof variant.option_values?.option === "string" ? { option: variant.option_values.option } : variant.size ? { size: variant.size } : {},
+          size: editing.purchaseMode === "size" ? choice : null,
+          colour: editing.purchaseMode === "colour" ? choice : "Default",
+          option_values: editing.purchaseMode === "option" ? { option: choice } : {},
           price_override: variant.price_override === null || variant.price_override === undefined ? null : Number(variant.price_override),
           stock_quantity: Number(variant.stock_quantity),
           low_stock_threshold: 10,
@@ -405,7 +439,9 @@ export function AdminProductsEditor() {
                 <span>{totalStock(product)} in stock</span>
               </div>
               <small>
-                {product.variants.length} option{product.variants.length === 1 ? "" : "s"}
+                {product.purchaseMode === "single"
+                  ? "Quantity only"
+                  : `${product.variants.length} ${product.purchaseMode} choice${product.variants.length === 1 ? "" : "s"}`}
               </small>
             </div>
           </button>
@@ -595,40 +631,64 @@ export function AdminProductsEditor() {
             <div className="admin-variants-head">
               <div>
                 <p className="eyebrow">OPTIONS & STOCK</p>
-                <h3>Variants</h3>
+                <h3>How customers buy this item</h3>
               </div>
-              <button type="button" className="button" onClick={addVariant}>
-                <Plus /> Add option
-              </button>
+              {editing.purchaseMode !== "single" ? (
+                <button type="button" className="button" onClick={addVariant}>
+                  <Plus /> Add {editing.purchaseMode}
+                </button>
+              ) : null}
             </div>
+
+            <label className="field admin-purchase-mode">
+              <span>Purchase mode</span>
+              <select
+                value={editing.purchaseMode}
+                onChange={(event) => changePurchaseMode(event.target.value as ProductPurchaseMode)}
+              >
+                <option value="single">Quantity only — balls, rackets, equipment</option>
+                <option value="size">Select size — clothing and footwear</option>
+                <option value="option">Select option — Standard, Premium, packs</option>
+                <option value="colour">Select colour</option>
+              </select>
+              <small>
+                {editing.purchaseMode === "single"
+                  ? "Customers only choose the amount. No size or option selector is shown."
+                  : `Customers must choose a ${editing.purchaseMode} before adding the item.`}
+              </small>
+            </label>
 
             <div className="admin-variant-list">
               {editing.variants.map((variant, index) => (
-                <div className="admin-variant-row" key={variant.id ?? index}>
+                <div className={`admin-variant-row admin-variant-row--${editing.purchaseMode}`} key={variant.id ?? index}>
+                  {editing.purchaseMode !== "single" ? (
+                    <label>
+                      <span>{editing.purchaseMode}</span>
+                      <input
+                        placeholder={editing.purchaseMode === "size" ? "M, L, XL…" : editing.purchaseMode === "option" ? "Standard, Premium…" : "Black, Blue…"}
+                        value={variantLabel(variant, editing.purchaseMode) === editing.purchaseMode[0].toUpperCase() + editing.purchaseMode.slice(1) ? "" : variantLabel(variant, editing.purchaseMode)}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          updateVariant(index, {
+                            size: editing.purchaseMode === "size" ? value || null : null,
+                            colour: editing.purchaseMode === "colour" ? value || null : "Default",
+                            option_values: editing.purchaseMode === "option" ? { option: value } : {},
+                          });
+                        }}
+                        required
+                      />
+                    </label>
+                  ) : null}
                   <label>
-                    <span>Option or size</span>
+                    <span>SKU</span>
                     <input
-                      placeholder="Premium, Standard, M…"
-                      value={String(variant.option_values?.option ?? variant.size ?? "")}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        const isNamedOption = ["premium", "standard"].includes(value.toLowerCase());
-                        updateVariant(index, {
-                          size: isNamedOption ? null : value || null,
-                          option_values: isNamedOption ? { option: value } : {},
-                        });
-                      }}
+                      placeholder="Generated if blank"
+                      value={variant.sku}
+                      onChange={(event) => updateVariant(index, { sku: event.target.value })}
                     />
                   </label>
                   <label>
-                    <span>Colour</span>
-                    <input
-                      value={variant.colour ?? ""}
-                      onChange={(event) => updateVariant(index, { colour: event.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <span>Price</span>
+                    <span>{editing.purchaseMode === "single" ? "Price override" : "Choice price"}</span>
                     <input
                       type="number"
                       min={0}
@@ -650,9 +710,11 @@ export function AdminProductsEditor() {
                       onChange={(event) => updateVariant(index, { stock_quantity: Number(event.target.value) })}
                     />
                   </label>
-                  <button type="button" onClick={() => removeVariant(index)} aria-label={`Remove ${variantLabel(variant)}`}>
-                    ×
-                  </button>
+                  {editing.purchaseMode !== "single" ? (
+                    <button type="button" onClick={() => removeVariant(index)} aria-label={`Remove ${variantLabel(variant, editing.purchaseMode)}`}>
+                      ×
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>

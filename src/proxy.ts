@@ -9,7 +9,11 @@ export async function proxy(request: NextRequest) {
   ).toLowerCase();
 
   const hostname = host.split(":")[0];
-  const isShopSubdomain = hostname === "shop.fits4l.xyz";
+  const isShopSubdomain =
+    hostname === "shop.fits4l.xyz" ||
+    hostname === "shop.localhost" ||
+    hostname.startsWith("shop.") ||
+    request.nextUrl.searchParams.get("subdomain") === "shop";
 
   let rewriteUrl: URL | null = null;
 
@@ -65,6 +69,11 @@ export async function proxy(request: NextRequest) {
   });
 
   await supabase.auth.getUser();
+
+  response.cookies.set("fits_subdomain", isShopSubdomain ? "shop" : "main", {
+    path: "/",
+    sameSite: "lax",
+  });
 
   return response;
 }

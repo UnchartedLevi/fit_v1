@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ProductImageRecord, ProductVariantRecord } from "@/lib/commerce-types";
+import { getProductPurchaseMode, getVariantChoiceLabel } from "@/lib/product-options";
 
 const Body = z.object({
   customer: z.object({
@@ -112,12 +113,13 @@ export async function POST(req: Request) {
       const unitPrice = variant.price_override ?? product.base_price;
       const lineTotal = unitPrice * item.quantity;
       subtotal += lineTotal;
+      const purchaseMode = getProductPurchaseMode(variants);
 
       return {
         product_id: product.id,
         variant_id: variant.id,
         product_name: product.name,
-        variant_description: [typeof variant.option_values?.option === "string" ? variant.option_values.option : null, variant.size && typeof variant.option_values?.option !== "string" && !["premium", "standard"].includes(variant.size.toLowerCase()) ? `Size ${variant.size}` : null, variant.size && typeof variant.option_values?.option !== "string" && ["premium", "standard"].includes(variant.size.toLowerCase()) ? variant.size : null, variant.colour && variant.colour !== "Default" ? variant.colour : null].filter(Boolean).join(" / ") || "One Size",
+        variant_description: purchaseMode === "single" ? "Item" : getVariantChoiceLabel(variant, purchaseMode),
         sku: variant.sku,
         image_url: product.product_images?.find((image) => image.is_primary)?.image_url ?? product.product_images?.[0]?.image_url ?? null,
         unit_price: unitPrice,

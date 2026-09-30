@@ -8,18 +8,28 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "./cart-provider";
 
-function HeaderSearch() {
+function checkIsShopSubdomain(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = (window.location.hostname || "").toLowerCase();
+  const search = window.location.search || "";
+  return (
+    host === "shop.fits4l.xyz" ||
+    host === "shop.localhost" ||
+    host.startsWith("shop.") ||
+    search.includes("subdomain=shop") ||
+    document.documentElement.classList.contains("is-shop-subdomain")
+  );
+}
+
+function HeaderSearch({ variant = "inline" }: { variant?: "inline" | "centered" }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
   const [term, setTerm] = useState(searchParams?.get("q") || "");
 
-  useEffect(() => {
-    setTerm(searchParams?.get("q") || "");
-  }, [searchParams]);
-
   const isShopPage =
     pathname === "/products" ||
+    (typeof window !== "undefined" && checkIsShopSubdomain() && pathname === "/") ||
     (typeof document !== "undefined" && !!document.getElementById("products"));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +48,11 @@ function HeaderSearch() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isShopPage) {
-      router.push(`/products?q=${encodeURIComponent(term)}`);
+      const isShopSub = checkIsShopSubdomain();
+      const target = isShopSub
+        ? `/?q=${encodeURIComponent(term)}`
+        : `/products?q=${encodeURIComponent(term)}`;
+      router.push(target);
     }
   };
 
@@ -52,17 +66,23 @@ function HeaderSearch() {
     }
   };
 
+  const isCentered = variant === "centered";
+
   return (
-    <form onSubmit={handleSubmit} className="nav-search-form" role="search">
-      <div className="nav-search-box">
-        <Search size={15} className="nav-search-icon" />
+    <form
+      onSubmit={handleSubmit}
+      className={`nav-search-form ${isCentered ? "is-centered" : ""}`}
+      role="search"
+    >
+      <div className={`nav-search-box ${isCentered ? "is-centered" : ""}`}>
+        <Search size={isCentered ? 16 : 15} className="nav-search-icon" />
         <input
           type="search"
           value={term}
           onChange={handleChange}
           placeholder="Search products..."
           aria-label="Search products"
-          className="nav-search-input"
+          className={`nav-search-input ${isCentered ? "is-centered" : ""}`}
         />
         {term ? (
           <button
@@ -79,11 +99,14 @@ function HeaderSearch() {
   );
 }
 
-export function SiteHeader() {
+export function SiteHeader({ initialIsShopSubdomain = false }: { initialIsShopSubdomain?: boolean }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const { count } = useCart();
+
+  const isShop = initialIsShopSubdomain || pathname === "/products" || pathname.startsWith("/products/");
 
   const checkSession = useCallback(async () => {
     const supabase = createClient();
@@ -140,20 +163,41 @@ export function SiteHeader() {
   }, [checkSession]);
 
   return (
-    <header className="site-header">
+    <header className={`site-header ${isShop ? "is-shop" : ""}`}>
       <Link href="/" className="brand-logo" aria-label="FITS home">
         <Image src="/brand/fits-logo-black.png" alt="FITS" width={557} height={296} priority />
       </Link>
-      <nav className={open ? "nav open" : "nav"}>
-        <Link className="nav-wordmark" href="/products">Shop</Link>
-        <Link className="nav-spotlight" href="/spotlight"><span>Sport</span><span>light</span></Link>
-        <Link className="nav-wordmark" href="/about">Our Journey</Link>
-        {isAdmin === true ? <Link className="admin-portal-button" href="/admin">Admin portal</Link> : null}
+
+      <nav className={`nav ${open ? "open" : ""}`}>
+        <Link className="nav-wordmark" href="/products" onClick={() => setOpen(false)}>Shop</Link>
+        <Link className="nav-spotlight" href="/spotlight" onClick={() => setOpen(false)}><span>Sport</span><span>light</span></Link>
+        <Link className="nav-wordmark" href="/about" onClick={() => setOpen(false)}>Our Journey</Link>
+        {isAdmin === true ? <Link className="admin-portal-button" href="/admin" onClick={() => setOpen(false)}>Admin portal</Link> : null}
       </nav>
+
+      {isShop ? (
+        <div className="header-center-search">
+          <Suspense fallback={<div className="nav-search-box-skeleton center-search-skeleton" />}>
+            <HeaderSearch variant="centered" />
+          </Suspense>
+        </div>
+      ) : null}
+
       <div className="header-actions">
-        <Suspense fallback={<div className="nav-search-box-skeleton" />}>
-          <HeaderSearch />
-        </Suspense>
+        {!isShop ? (
+          <div className="header-action-search">
+            <Suspense fallback={<div className="nav-search-box-skeleton" />}>
+              <HeaderSearch variant="inline" />
+            </Suspense>
+          </div>
+        ) : null}
+
+        {isAdmin === true && isShop ? (
+          <Link className="admin-portal-button admin-portal-subdomain" href="/admin">
+            Admin
+          </Link>
+        ) : null}
+
         {email ? (
           <>
             <Link href="/auth/login" className="account-initial" aria-label={`Signed in as ${email}`}>{email[0]?.toUpperCase()}</Link>
@@ -163,7 +207,7 @@ export function SiteHeader() {
           <Link href="/auth/login" aria-label="Account"><UserRound /></Link>
         )}
         <Link href="/cart" className="bag" aria-label={`Bag, ${count} items`}><ShoppingBag /><b>{count}</b></Link>
-        <button onClick={() => setOpen(!open)} className="menu" aria-label="Menu">{open ? <X /> : <Menu />}</button>
+        <button onClick={() => setOpen(!open)} className="menu" aria-label="Menu" aria-expanded={open}>{open ? <X /> : <Menu />}</button>
       </div>
     </header>
   );

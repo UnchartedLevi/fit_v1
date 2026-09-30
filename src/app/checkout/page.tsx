@@ -413,7 +413,7 @@ export default function Checkout() {
             <div className="summary-row" key={`${item.product.id}-${item.variantId}`}>
               <span>
                 {item.product.name} x {item.quantity}
-                <small style={{ display: "block" }}>{item.option}</small>
+                {item.option ? <small style={{ display: "block" }}>{item.option}</small> : null}
               </span>
               <b>{money(item.unitPrice * item.quantity)}</b>
             </div>

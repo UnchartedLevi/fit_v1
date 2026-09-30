@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import "./hero.css";
 import { CartProvider } from "@/components/cart-provider";
@@ -22,7 +23,24 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  const requestHeaders = await headers();
+  const host = (requestHeaders.get("x-forwarded-host") || requestHeaders.get("host") || "")
+    .toLowerCase()
+    .split(":")[0];
+  const isShopSubdomain = host === "shop.fits4l.xyz" || host === "shop.localhost" || host.startsWith("shop.");
   const organization = { "@context": "https://schema.org", "@type": "Organization", name: "FITS", url: siteUrl, logo: `${siteUrl}/brand/fits-logo-black.png`, sameAs: ["https://x.com/fits4l"], address: { "@type": "PostalAddress", addressLocality: "Ota", addressRegion: "Ogun", addressCountry: "NG" } };
-  return <html lang="en-NG"><body><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }} /><CartProvider><SiteHeader /><main>{children}</main><SiteFooter /><Toaster position="top-center" /></CartProvider></body></html>;
+  return (
+    <html lang="en-NG" className={isShopSubdomain ? "is-shop-subdomain" : undefined}>
+      <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }} />
+        <CartProvider>
+          <SiteHeader initialIsShopSubdomain={isShopSubdomain} />
+          <main>{children}</main>
+          <SiteFooter />
+          <Toaster position="top-center" />
+        </CartProvider>
+      </body>
+    </html>
+  );
 }

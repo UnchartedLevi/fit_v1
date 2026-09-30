@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CartItem, Product, ProductVariant } from "@/lib/types";
 import { toast } from "sonner";
+import { getProductPurchaseMode, getVariantChoiceLabel } from "@/lib/product-options";
 
 const CART_STORAGE_KEY = "fits-cart";
 
@@ -37,7 +38,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const stored = JSON.parse(window.localStorage.getItem(CART_STORAGE_KEY) || "[]") as unknown;
         setItems(Array.isArray(stored) ? stored.filter(isCartItem).map((item) => {
           const variant = item.product.variants?.find((candidate) => candidate.id === item.variantId);
-          return variant ? { ...item, quantity: clampQuantity(variant, item.quantity), unitPrice: variant.price_override ?? item.product.price } : item;
+          if (!variant) return item;
+          const purchaseMode = getProductPurchaseMode(item.product.variants ?? []);
+          const choice = getVariantChoiceLabel(variant, purchaseMode);
+          return {
+            ...item,
+            option: purchaseMode === "single" ? "" : `${purchaseMode === "size" ? "Size " : ""}${choice}`,
+            size: purchaseMode === "size" ? variant.size : null,
+            quantity: clampQuantity(variant, item.quantity),
+            unitPrice: variant.price_override ?? item.product.price,
+          };
         }) : []);
       } catch {
         setItems([]);
@@ -63,9 +73,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           if (found) {
             return current.map((item) => (item === found ? { ...item, quantity: clampQuantity(variant, item.quantity + quantity) } : item));
           }
-          const optionName = typeof variant.option_values?.option === "string" ? variant.option_values.option : null;
-          const option = [optionName, variant.size && !optionName && !["premium", "standard"].includes(variant.size.toLowerCase()) ? `Size ${variant.size}` : null, variant.size && !optionName && ["premium", "standard"].includes(variant.size.toLowerCase()) ? variant.size : null, variant.colour && variant.colour !== "Default" ? variant.colour : null].filter(Boolean).join(" / ") || "One Size";
-          return [...current, { product, variantId: variant.id, option, size: variant.size && !["premium", "standard"].includes(variant.size.toLowerCase()) ? variant.size : null, quantity: clampQuantity(variant, quantity), unitPrice: variant.price_override ?? product.price }];
+          const purchaseMode = getProductPurchaseMode(product.variants ?? []);
+          const choice = getVariantChoiceLabel(variant, purchaseMode);
+          const option = purchaseMode === "single" ? "" : `${purchaseMode === "size" ? "Size " : ""}${choice}`;
+          return [...current, { product, variantId: variant.id, option, size: purchaseMode === "size" ? variant.size : null, quantity: clampQuantity(variant, quantity), unitPrice: variant.price_override ?? product.price }];
         });
         toast.success("Added to bag");
       },
