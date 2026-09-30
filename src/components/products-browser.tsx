@@ -91,11 +91,12 @@ export function ProductsBrowser({
 
         if (sort === "new" || !sort) {
           if (featB !== featA) return featB - featA;
-          return b.id.localeCompare(a.id);
+          // Keep the server's newest-first order inside each featured group.
+          return 0;
         }
         if (sort === "low") return a.price - b.price;
         if (sort === "high") return b.price - a.price;
-        return b.id.localeCompare(a.id);
+        return 0;
       });
   }, [category, products, search, size, sort]);
 

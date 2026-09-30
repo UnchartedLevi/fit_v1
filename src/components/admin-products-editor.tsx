@@ -745,7 +745,9 @@ export function AdminProductsEditor() {
                 />
                 <div>
                   <strong style={{ fontSize: "15px", display: "block" }}>Featured product</strong>
-                  <span style={{ fontSize: "12px", color: "#666" }}>Pin this item to featured collections</span>
+                  <span style={{ fontSize: "12px", color: "#666" }}>
+                    Show this item first in the shop. Featured products are ranked newest first.
+                  </span>
                 </div>
               </label>
             </div>

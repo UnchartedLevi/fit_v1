@@ -168,12 +168,14 @@ export function SiteHeader({ initialIsShopSubdomain = false }: { initialIsShopSu
         <Image src="/brand/fits-logo-black.png" alt="FITS" width={557} height={296} priority />
       </Link>
 
-      <nav className={`nav ${open ? "open" : ""}`}>
-        <Link className="nav-wordmark" href="/products" onClick={() => setOpen(false)}>Shop</Link>
-        <Link className="nav-spotlight" href="/spotlight" onClick={() => setOpen(false)}><span>Sport</span><span>light</span></Link>
-        <Link className="nav-wordmark" href="/about" onClick={() => setOpen(false)}>Our Journey</Link>
-        {isAdmin === true ? <Link className="admin-portal-button" href="/admin" onClick={() => setOpen(false)}>Admin portal</Link> : null}
-      </nav>
+      {!isShop ? (
+        <nav className={`nav ${open ? "open" : ""}`}>
+          <Link className="nav-wordmark" href="/products" onClick={() => setOpen(false)}>Shop</Link>
+          <Link className="nav-spotlight" href="/spotlight" onClick={() => setOpen(false)}><span>Sport</span><span>light</span></Link>
+          <Link className="nav-wordmark" href="/about" onClick={() => setOpen(false)}>Our Journey</Link>
+          {isAdmin === true ? <Link className="admin-portal-button" href="/admin" onClick={() => setOpen(false)}>Admin portal</Link> : null}
+        </nav>
+      ) : null}
 
       {isShop ? (
         <div className="header-center-search">
@@ -207,7 +209,9 @@ export function SiteHeader({ initialIsShopSubdomain = false }: { initialIsShopSu
           <Link href="/auth/login" aria-label="Account"><UserRound /></Link>
         )}
         <Link href="/cart" className="bag" aria-label={`Bag, ${count} items`}><ShoppingBag /><b>{count}</b></Link>
-        <button onClick={() => setOpen(!open)} className="menu" aria-label="Menu" aria-expanded={open}>{open ? <X /> : <Menu />}</button>
+        {!isShop ? (
+          <button onClick={() => setOpen(!open)} className="menu" aria-label="Menu" aria-expanded={open}>{open ? <X /> : <Menu />}</button>
+        ) : null}
       </div>
     </header>
   );
