@@ -6,6 +6,7 @@ import { CartProvider } from "@/components/cart-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/toaster";
+import { STOREFRONT_ONLY_MODE } from "@/lib/storefront-mode";
 
 const siteUrl = "https://fits4l.xyz";
 const description = "Premium sportswear and football-inspired streetwear from Covenant University, Ota, Nigeria.";
@@ -29,13 +30,14 @@ export default async function Layout({ children }: { children: React.ReactNode }
     .toLowerCase()
     .split(":")[0];
   const isShopSubdomain = host === "shop.fits4l.xyz" || host === "shop.localhost" || host.startsWith("shop.");
+  const isStorefrontMode = STOREFRONT_ONLY_MODE || isShopSubdomain;
   const organization = { "@context": "https://schema.org", "@type": "Organization", name: "FITS", url: siteUrl, logo: `${siteUrl}/brand/fits-logo-black.png`, sameAs: ["https://x.com/fits4l"], address: { "@type": "PostalAddress", addressLocality: "Ota", addressRegion: "Ogun", addressCountry: "NG" } };
   return (
-    <html lang="en-NG" className={isShopSubdomain ? "is-shop-subdomain" : undefined}>
+    <html lang="en-NG" className={isStorefrontMode ? "is-shop-subdomain" : undefined}>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }} />
         <CartProvider>
-          <SiteHeader initialIsShopSubdomain={isShopSubdomain} />
+          <SiteHeader initialIsShopSubdomain={isStorefrontMode} />
           <main>{children}</main>
           <SiteFooter />
           <Toaster position="top-center" />

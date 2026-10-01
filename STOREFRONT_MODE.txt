@@ -1,0 +1,28 @@
+FITS STOREFRONT-ONLY LAUNCH MODE
+================================
+
+Status: ENABLED
+
+The primary domain (fits4l.xyz) and the shop subdomain (shop.fits4l.xyz)
+currently present the same shop-first experience.
+
+While this temporary launch mode is enabled:
+
+- Visiting the root URL (/) is internally rewritten to the products page.
+- The original marketing homepage is hidden, not deleted. Its implementation
+  remains in src/app/page.tsx for later use.
+- The Shop, Spotlight, and Our Journey navigation links are hidden on both
+  domains. The storefront search, account, and bag controls remain visible.
+- Existing pages such as /about and /spotlight remain in the codebase and can
+  still be reached directly, but they are not linked from the public header.
+
+The shared switch is STOREFRONT_ONLY_MODE in:
+
+  src/lib/storefront-mode.ts
+
+To restore the separate marketing homepage and normal primary-domain header,
+set STOREFRONT_ONLY_MODE to false. The shop subdomain will continue to use the
+shop experience through its existing hostname detection.
+
+Do not delete the hidden homepage or navigation implementation unless the
+project owner explicitly approves replacing it permanently.

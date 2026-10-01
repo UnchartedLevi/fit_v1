@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { STOREFRONT_ONLY_MODE } from "@/lib/storefront-mode";
 
 export async function proxy(request: NextRequest) {
   const host = (
@@ -14,10 +15,11 @@ export async function proxy(request: NextRequest) {
     hostname === "shop.localhost" ||
     hostname.startsWith("shop.") ||
     request.nextUrl.searchParams.get("subdomain") === "shop";
+  const isStorefrontMode = STOREFRONT_ONLY_MODE || isShopSubdomain;
 
   let rewriteUrl: URL | null = null;
 
-  if (isShopSubdomain) {
+  if (isStorefrontMode) {
     const { pathname, search } = request.nextUrl;
 
     if (pathname === "/" || pathname === "") {
@@ -70,7 +72,7 @@ export async function proxy(request: NextRequest) {
 
   await supabase.auth.getUser();
 
-  response.cookies.set("fits_subdomain", isShopSubdomain ? "shop" : "main", {
+  response.cookies.set("fits_subdomain", isStorefrontMode ? "shop" : "main", {
     path: "/",
     sameSite: "lax",
   });
