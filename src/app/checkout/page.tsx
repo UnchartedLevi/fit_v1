@@ -19,7 +19,7 @@ type CheckoutDetails = {
 
 type AppliedCoupon = {
   code: string;
-  type: "percentage" | "fixed";
+  type: "percentage" | "fixed" | "free_shipping";
   value: number;
   discount: number;
   message: string;
@@ -118,7 +118,7 @@ export default function Checkout() {
     toast.info("Coupon removed");
   }
 
-  const shippingPrice = selectedShipping ? selectedShipping.price : 0;
+  const shippingPrice = appliedCoupon?.type === "free_shipping" ? 0 : selectedShipping ? selectedShipping.price : 0;
   const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
   const finalTotal = Math.max(0, subtotal + shippingPrice - discountAmount);
 
@@ -262,8 +262,8 @@ export default function Checkout() {
                         alignItems: "center",
                         justifyContent: "space-between",
                         padding: "16px 18px",
-                        background: isSelected ? "rgba(255,255,255,0.08)" : "#141414",
-                        border: isSelected ? "2px solid #fff" : "1px solid rgba(255,255,255,0.12)",
+                        background: "var(--bg)",
+                        border: isSelected ? "2px solid #16803d" : "2px solid var(--line)",
                         borderRadius: "10px",
                         cursor: "pointer",
                         transition: "all 0.2s ease",
@@ -275,24 +275,24 @@ export default function Checkout() {
                           name="shipping_method_selection"
                           checked={isSelected}
                           onChange={() => setSelectedShipping(method)}
-                          style={{ accentColor: "#fff", width: "18px", height: "18px", cursor: "pointer" }}
+                          style={{ accentColor: "#16803d", width: "18px", height: "18px", cursor: "pointer" }}
                         />
                         <div>
-                          <strong style={{ fontSize: "15px", display: "block", color: "#fff" }}>
+                          <strong style={{ fontSize: "15px", display: "block", color: "var(--ink)" }}>
                             {method.zone_name}
                           </strong>
                           {method.description ? (
-                            <span style={{ fontSize: "13px", color: "#888", display: "block" }}>
+                            <span style={{ fontSize: "13px", color: "#555", display: "block" }}>
                               {method.description}
                             </span>
                           ) : null}
-                          <span style={{ fontSize: "12px", color: "#aaa", display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                          <span style={{ fontSize: "12px", color: "#555", display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
                             <Clock size={12} /> {method.eta}
                           </span>
                         </div>
                       </div>
 
-                      <strong style={{ fontSize: "16px", color: "#fff" }}>{money(method.price)}</strong>
+                      <strong style={{ fontSize: "16px", color: "var(--ink)" }}>{money(method.price)}</strong>
                     </label>
                   );
                 })}
@@ -330,8 +330,8 @@ export default function Checkout() {
                   <Check size={18} />
                   <div>
                     <strong style={{ fontSize: "14px" }}>{appliedCoupon.code}</strong>
-                    <span style={{ fontSize: "12px", display: "block", color: "#86efac" }}>
-                      {appliedCoupon.message} ({money(appliedCoupon.discount)} saved)
+                    <span style={{ fontSize: "12px", display: "block", color: "#16803d" }}>
+                      {appliedCoupon.message} {appliedCoupon.type !== "free_shipping" ? `(${money(appliedCoupon.discount)} saved)` : ""}
                     </span>
                   </div>
                 </div>
@@ -362,11 +362,12 @@ export default function Checkout() {
                   onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
                   style={{
                     flex: 1,
+                    minWidth: 0,
                     padding: "12px 14px",
-                    background: "#161616",
-                    border: "1px solid rgba(255,255,255,0.15)",
+                    background: "var(--bg)",
+                    border: "1px solid var(--line)",
                     borderRadius: "8px",
-                    color: "#fff",
+                    color: "var(--ink)",
                     fontSize: "14px",
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
@@ -420,22 +421,22 @@ export default function Checkout() {
           ))}
 
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: "20px", paddingTop: "14px" }}>
-            <div className="summary-row" style={{ color: "#aaa" }}>
+            <div className="summary-row" style={{ color: "#555" }}>
               <span>Subtotal</span>
               <span>{money(subtotal)}</span>
             </div>
 
-            <div className="summary-row" style={{ color: "#aaa", marginTop: "8px" }}>
+            <div className="summary-row" style={{ color: "#555", marginTop: "8px" }}>
               <span>Shipping</span>
               <span>
-                {selectedShipping ? money(selectedShipping.price) : <em style={{ fontSize: "12px", color: "#f87171" }}>Select shipping</em>}
+                {selectedShipping ? money(shippingPrice) : <em style={{ fontSize: "12px", color: "#b91c1c" }}>Select shipping</em>}
               </span>
             </div>
 
             {appliedCoupon ? (
               <div className="summary-row" style={{ color: "#22c55e", fontWeight: "700", marginTop: "8px" }}>
                 <span>Coupon ({appliedCoupon.code})</span>
-                <span>- {money(discountAmount)}</span>
+                <span>{appliedCoupon.type === "free_shipping" ? "Free shipping" : `- ${money(discountAmount)}`}</span>
               </div>
             ) : null}
 

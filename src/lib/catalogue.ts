@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { ProductRecord, StoreProduct } from "@/lib/commerce-types";
 import { isSelectableSize } from "@/lib/product-options";
+import { STORE_CATEGORIES, normalizeCategory } from "@/lib/categories";
 
 type ProductQuery = {
   category?: string;
@@ -12,15 +13,7 @@ type ProductQuery = {
   sort?: string;
 };
 
-const fallbackCategories = [
-  { name: "Football", slug: "football" },
-  { name: "Basketball", slug: "basketball" },
-  { name: "Gym & Fitness", slug: "gym-fitness" },
-  { name: "Jerseys", slug: "jerseys" },
-  { name: "Accessories", slug: "accessories" },
-  { name: "Bundles", slug: "bundles" },
-  { name: "Fashion & Lifestyle", slug: "fashion-lifestyle" },
-];
+const fallbackCategories = STORE_CATEGORIES;
 
 function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, { is_sbu?: boolean; featured?: boolean; category_ids?: string[]; categories?: string[] }>): StoreProduct {
   const images = (record.product_images ?? [])
@@ -41,7 +34,7 @@ function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, 
   const featured = meta?.featured !== undefined ? meta.featured : Boolean(record.featured);
   const category_ids = meta?.category_ids || record.category_ids || (record.category_id ? [record.category_id] : []);
   const extraCategories = meta?.categories || [];
-  const mergedCategories = [...new Set([...categoriesArray, ...extraCategories])];
+  const mergedCategories = [...new Set([...categoriesArray, ...extraCategories].map(normalizeCategory).filter((name): name is string => Boolean(name)))];
 
   return {
     id: record.id,
@@ -53,8 +46,8 @@ function mapRecordToProduct(record: ProductRecord, metadataMap?: Record<string, 
     price: record.base_price,
     compareAtPrice: record.compare_at_price,
     currency: record.currency,
-    category: mergedCategories[0] ?? primaryCategory?.name ?? "FITS",
-    categorySlug: primaryCategory?.slug,
+    category: mergedCategories[0] ?? "Accessories",
+    categorySlug: STORE_CATEGORIES.find((category) => category.name === mergedCategories[0])?.slug,
     category_ids,
     categories: mergedCategories,
     is_sbu,
@@ -101,7 +94,7 @@ const getCatalogueSnapshot = unstable_cache(
       categories: categoryResult.error || !categoryResult.data?.length ? fallbackCategories : categoryResult.data,
     };
   },
-  ["fits-public-catalogue-v1"],
+  ["fits-public-catalogue-v2"],
   { revalidate: 30, tags: ["fits-catalogue"] },
 );
 
@@ -157,18 +150,6 @@ export async function getProductBySlug(slug: string): Promise<StoreProduct | nul
 }
 
 export async function listCategories() {
-  const { categories } = await readCatalogueSnapshot();
-
-  // Filter to prioritize core 7 categories while keeping other active ones
-  const requestedSlugs = ["football", "basketball", "gym-fitness", "jerseys", "accessories", "bundles", "fashion-lifestyle"];
-  return [...categories].sort((a, b) => {
-    const idxA = requestedSlugs.indexOf(a.slug);
-    const idxB = requestedSlugs.indexOf(b.slug);
-    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-    if (idxA !== -1) return -1;
-    if (idxB !== -1) return 1;
-    return a.name.localeCompare(b.name);
-  });
-
+  return STORE_CATEGORIES;
 }
 

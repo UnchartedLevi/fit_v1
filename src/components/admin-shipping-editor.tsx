@@ -38,7 +38,8 @@ export function AdminShippingEditor() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const filtered = methods.filter(
@@ -116,7 +117,8 @@ export function AdminShippingEditor() {
         <span>Active Methods</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px", marginTop: "24px" }}>
+      <div className="admin-coupon-grid">
+        {loading ? <p role="status">Loading shipping methods…</p> : null}
         {filtered.map((method) => (
           <div
             key={method.id}

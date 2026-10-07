@@ -1,6 +1,6 @@
 "use client";
 
-import { Percent, Plus, Search, Tag, Trash2, X } from "lucide-react";
+import { Plus, Search, Tag, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { money } from "@/lib/products";
@@ -38,7 +38,8 @@ export function AdminCouponsEditor() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const filtered = coupons.filter(
@@ -51,7 +52,7 @@ export function AdminCouponsEditor() {
     e.preventDefault();
     if (!editing) return;
     if (!editing.code.trim()) return toast.error("Please provide a coupon code");
-    if (!editing.value || Number(editing.value) <= 0) return toast.error("Please provide a valid discount value");
+    if (editing.type !== "free_shipping" && (!editing.value || Number(editing.value) <= 0)) return toast.error("Please provide a valid discount value");
 
     setSaving(true);
     try {
@@ -104,7 +105,7 @@ export function AdminCouponsEditor() {
         <button
           className="button"
           type="button"
-          onClick={() => setEditing({ ...blankCoupon, id: `coupon-${Date.now()}` })}
+          onClick={() => setEditing({ ...blankCoupon, id: crypto.randomUUID() })}
         >
           <Plus /> Add coupon code
         </button>
@@ -117,7 +118,8 @@ export function AdminCouponsEditor() {
         <span>Active Coupons</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px", marginTop: "24px" }}>
+      <div className="admin-coupon-grid">
+        {loading ? <p role="status">Loading coupon codes…</p> : null}
         {filtered.map((coupon) => (
           <div
             key={coupon.id}
@@ -170,7 +172,7 @@ export function AdminCouponsEditor() {
                   Discount Function
                 </span>
                 <p style={{ fontSize: "20px", fontWeight: "800", margin: "4px 0", color: "#111" }}>
-                  {coupon.type === "percentage" ? `${coupon.value}% Off Total` : `${money(coupon.value)} Cashback / Deduction`}
+                  {coupon.type === "free_shipping" ? "Free shipping" : coupon.type === "percentage" ? `${coupon.value}% Off Total` : `${money(coupon.value)} Cashback / Deduction`}
                 </p>
               </div>
 
@@ -209,13 +211,13 @@ export function AdminCouponsEditor() {
       </div>
 
       {editing ? (
-        <div className="admin-edit-modal" role="dialog" aria-modal="true">
+        <div className="admin-edit-modal" role="dialog" aria-modal="true" aria-label="Edit coupon code">
           <form className="admin-edit-card" onSubmit={handleSave} style={{ maxWidth: "560px" }}>
             <button type="button" className="admin-edit-close" onClick={() => setEditing(null)}>
               <X />
             </button>
-            <p className="eyebrow">{editing.id.startsWith("coupon-") && !coupons.some(c => c.id === editing.id) ? "NEW COUPON CODE" : "EDIT COUPON CODE"}</p>
-            <h2>{editing.id.startsWith("coupon-") && !coupons.some(c => c.id === editing.id) ? "Add Coupon Code" : editing.code}</h2>
+            <p className="eyebrow">{!coupons.some(c => c.id === editing.id) ? "NEW COUPON CODE" : "EDIT COUPON CODE"}</p>
+            <h2>{!coupons.some(c => c.id === editing.id) ? "Add Coupon Code" : editing.code}</h2>
 
             <div className="form-grid" style={{ marginTop: "20px" }}>
               <label className="field full">
@@ -232,14 +234,15 @@ export function AdminCouponsEditor() {
                 <span>Discount Function</span>
                 <select
                   value={editing.type}
-                  onChange={(e) => setEditing({ ...editing, type: e.target.value as "percentage" | "fixed" })}
+                  onChange={(e) => setEditing({ ...editing, type: e.target.value as CouponCode["type"], value: e.target.value === "free_shipping" ? 0 : 10 })}
                 >
                   <option value="percentage">Percentage Discount (%)</option>
                   <option value="fixed">Cashback / Fixed Deduction (NGN)</option>
+                  <option value="free_shipping">Free Shipping</option>
                 </select>
               </label>
 
-              <label className="field">
+              {editing.type !== "free_shipping" ? <label className="field">
                 <span>{editing.type === "percentage" ? "Discount Percentage (%)" : "Deduction Amount (NGN)"}</span>
                 <input
                   type="number"
@@ -249,7 +252,7 @@ export function AdminCouponsEditor() {
                   onChange={(e) => setEditing({ ...editing, value: Number(e.target.value) })}
                   required
                 />
-              </label>
+              </label> : <p>Removes the delivery fee for any selected shipping method.</p>}
 
               <label className="field full">
                 <span>Minimum Order Spend (NGN, optional)</span>

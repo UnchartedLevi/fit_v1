@@ -154,7 +154,7 @@ export function AdminProductsEditor() {
       { data: productData, error: productError },
       { data: metaData },
     ] = await Promise.all([
-      client.from("categories").select("id,name,slug").order("sort_order"),
+      client.from("categories").select("id,name,slug").eq("is_active", true).in("slug", ["football", "basketball", "tennis", "jerseys", "gym-fitness", "accessories", "lifestyle"]).order("sort_order"),
       client
         .from("products")
         .select(

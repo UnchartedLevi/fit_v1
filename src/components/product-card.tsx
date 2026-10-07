@@ -5,17 +5,14 @@ import { Product } from "@/lib/types";
 import { money } from "@/lib/products";
 import { ProductVisual } from "./product-visual";
 
-function discountPercent(product: Product) {
-  if (!product.compareAtPrice || product.compareAtPrice <= product.price) return null;
-  return Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100);
-}
-
 export function ProductCard({ product }: { product: Product }) {
-  const discount = discountPercent(product);
   const soldOut = product.stock_quantity <= 0;
   const variantPrices = (product.variants ?? []).map((variant) => variant.price_override ?? product.price);
   const minimumPrice = variantPrices.length ? Math.min(...variantPrices) : product.price;
   const maximumPrice = variantPrices.length ? Math.max(...variantPrices) : product.price;
+  const discount = product.compareAtPrice && minimumPrice > 0 && product.compareAtPrice > minimumPrice
+    ? Math.round(((product.compareAtPrice - minimumPrice) / product.compareAtPrice) * 100)
+    : null;
 
   return (
     <article className="product-card">
@@ -32,7 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
           <div className="price-stack">
             <b>{minimumPrice === maximumPrice ? money(minimumPrice) : `${money(minimumPrice)} – ${money(maximumPrice)}`}</b>
             {product.compareAtPrice ? <s>{money(product.compareAtPrice)}</s> : null}
-            {discount ? <span>{discount}% off</span> : null}
+            {discount ? <span>{minimumPrice !== maximumPrice ? "Up to " : ""}{discount}% off</span> : null}
           </div>
         </div>
       </Link>

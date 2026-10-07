@@ -4,6 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { ProductImageRecord, ProductVariantRecord } from "@/lib/commerce-types";
 import { getProductPurchaseMode, getVariantChoiceLabel } from "@/lib/product-options";
+import { listActiveShippingMethods } from "@/lib/shipping";
+import { validateCoupon } from "@/lib/coupons";
+import { listProducts } from "@/lib/catalogue";
 
 const Body = z.object({
   customer: z.object({
@@ -27,8 +30,7 @@ const Body = z.object({
       zone_name: z.string(),
       price: z.number().nonnegative(),
       eta: z.string().optional(),
-    })
-    .optional(),
+    }),
   coupon: z
     .object({
       code: z.string(),
@@ -100,6 +102,8 @@ export async function POST(req: Request) {
       product_images: ((imageData ?? []) as ProductImageRecord[]).filter((image) => image.product_id === product.id),
       product_variants: ((variantData ?? []) as ProductVariantRecord[]).filter((variant) => variant.product_id === product.id),
     }));
+    const quantities = new Map<string, number>();
+    for (const item of body.items) quantities.set(item.variant_id, (quantities.get(item.variant_id) ?? 0) + item.quantity);
     let subtotal = 0;
     const orderItems = body.items.map((item) => {
       const product = products.find((candidate) => candidate.id === item.product_id);
@@ -108,7 +112,7 @@ export async function POST(req: Request) {
       const variants = (product.product_variants ?? []).filter((variant) => variant.is_active);
       const variant = variants.find((candidate) => candidate.id === item.variant_id);
       if (!variant) throw new Error(`${product.name} has no available variants.`);
-      if (variant.stock_quantity < item.quantity) throw new Error(`${product.name} does not have enough stock.`);
+      if (variant.stock_quantity < (quantities.get(variant.id) ?? item.quantity)) throw new Error(`${product.name} does not have enough stock.`);
 
       const unitPrice = variant.price_override ?? product.base_price;
       const lineTotal = unitPrice * item.quantity;
@@ -132,8 +136,22 @@ export async function POST(req: Request) {
       data: { user },
     } = session ? await session.auth.getUser() : { data: { user: null } };
 
-    const deliveryFee = body.shipping?.price ?? 0;
-    const discountAmount = body.coupon?.discount ?? 0;
+    const shipping = (await listActiveShippingMethods()).find((method) => method.id === body.shipping.id);
+    if (!shipping) throw new Error("Select an available shipping method.");
+    let deliveryFee = shipping.price;
+    let discountAmount = 0;
+    if (body.coupon?.code) {
+      const catalogue = await listProducts();
+      const couponItems = orderItems.map((item) => {
+        const product = catalogue.find((candidate) => candidate.id === item.product_id);
+        if (!product) throw new Error("Could not validate coupon products.");
+        return { product, quantity: item.quantity, unitPrice: item.unit_price };
+      });
+      const result = await validateCoupon(body.coupon.code, couponItems, subtotal);
+      if (!result.valid) throw new Error(result.error || "Invalid coupon.");
+      discountAmount = result.discount;
+      if (result.freeShipping) deliveryFee = 0;
+    }
     const totalAmount = Math.max(0, subtotal + deliveryFee - discountAmount);
 
     const orderNumber = generateOrderNumber();
@@ -142,8 +160,8 @@ export async function POST(req: Request) {
       recipient_name: body.customer.name,
       phone: body.customer.phone,
       address_line_1: body.customer.address.trim(),
-      shipping_zone: body.shipping?.zone_name ?? "Campus Delivery",
-      shipping_eta: body.shipping?.eta ?? "",
+      shipping_zone: shipping.zone_name,
+      shipping_eta: shipping.eta,
       coupon_code: body.coupon?.code ?? null,
       city: "Ota",
       state: "Ogun",
@@ -185,7 +203,7 @@ export async function POST(req: Request) {
       amount: totalAmount,
       currency: "NGN",
       status: "pending",
-      metadata: { order_number: orderNumber, coupon: body.coupon?.code, shipping_zone: body.shipping?.zone_name },
+      metadata: { order_number: orderNumber, coupon: body.coupon?.code, shipping_zone: shipping.zone_name },
     });
     if (paymentError) throw paymentError;
 
@@ -206,7 +224,7 @@ export async function POST(req: Request) {
           order_id: order.id,
           order_number: orderNumber,
           customer_name: body.customer.name,
-          shipping_zone: body.shipping?.zone_name,
+          shipping_zone: shipping.zone_name,
           coupon_code: body.coupon?.code,
         },
       }),

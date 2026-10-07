@@ -1,4 +1,3 @@
-import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CouponCode, StoreProduct } from "@/lib/commerce-types";
 
@@ -33,10 +32,6 @@ export async function getAllCouponsAdmin(): Promise<CouponCode[]> {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!tableError && tableData && tableData.length > 0) {
-      return tableData as CouponCode[];
-    }
-
     const { data: contentData } = await admin
       .from("site_content")
       .select("value")
@@ -44,8 +39,11 @@ export async function getAllCouponsAdmin(): Promise<CouponCode[]> {
       .maybeSingle();
 
     if (contentData?.value && Array.isArray(contentData.value)) {
-      return contentData.value as CouponCode[];
+      const combined = new Map((tableData ?? []).map((c: CouponCode) => [c.code.toUpperCase(), c]));
+      for (const coupon of contentData.value as CouponCode[]) combined.set(coupon.code.toUpperCase(), coupon);
+      return [...combined.values()];
     }
+    if (!tableError && tableData) return tableData as CouponCode[];
   } catch (err) {
     console.error("Failed to get admin coupons:", err);
   }
@@ -62,11 +60,12 @@ export async function findCouponByCode(code: string): Promise<CouponCode | null>
 export type CouponValidationResult = {
   valid: boolean;
   code?: string;
-  type?: "percentage" | "fixed";
+  type?: CouponCode["type"];
   value?: number;
   discount: number;
   eligibleAmount: number;
   message?: string;
+  freeShipping?: boolean;
   error?: string;
 };
 
@@ -95,6 +94,12 @@ export async function validateCoupon(
       eligibleAmount: 0,
       error: `Minimum order amount of ₦${coupon.min_spend.toLocaleString()} required for this coupon.`,
     };
+  }
+
+  if (coupon.type === "free_shipping") {
+    return { valid: true, code: coupon.code, type: coupon.type, value: 0,
+      discount: 0, eligibleAmount: orderSubtotal, freeShipping: true,
+      message: "Free shipping applied!" };
   }
 
   // Calculate eligible amount based on product SBU flag.
@@ -136,34 +141,38 @@ export async function validateCoupon(
   };
 }
 
-export async function saveCoupon(coupon: Partial<CouponCode> & { code: string; type: "percentage" | "fixed"; value: number }): Promise<CouponCode> {
+export async function saveCoupon(coupon: Partial<CouponCode> & { code: string; type: CouponCode["type"]; value: number }): Promise<CouponCode> {
   const admin = createAdminClient();
   if (!admin) throw new Error("Supabase admin client not available");
 
-  const id = coupon.id || `coupon-${Date.now()}`;
+  if (!coupon.code.trim() || !["percentage", "fixed", "free_shipping"].includes(coupon.type)) throw new Error("Invalid coupon code or discount type.");
+  if (coupon.type !== "free_shipping" && (!Number.isFinite(Number(coupon.value)) || Number(coupon.value) <= 0 || (coupon.type === "percentage" && Number(coupon.value) > 100))) throw new Error("Invalid discount value.");
+  if (!Number.isFinite(Number(coupon.min_spend || 0)) || Number(coupon.min_spend || 0) < 0) throw new Error("Invalid minimum spend.");
+  const id = coupon.id || crypto.randomUUID();
   const record: CouponCode = {
     id,
     code: coupon.code.trim().toUpperCase(),
     type: coupon.type,
-    value: Number(coupon.value),
+    value: coupon.type === "free_shipping" ? 0 : Number(coupon.value),
     min_spend: Number(coupon.min_spend || 0),
     is_active: coupon.is_active !== undefined ? coupon.is_active : true,
     times_used: coupon.times_used || 0,
   };
 
   // Attempt save to coupon_codes table
-  await admin.from("coupon_codes").upsert(record);
+  const { error: tableError } = await admin.from("coupon_codes").upsert(record);
 
   // Sync with site_content
   const { data: content } = await admin.from("site_content").select("value").eq("key", "coupon_codes").maybeSingle();
-  let list = (content?.value as CouponCode[]) || defaultCoupons;
+  let list = (content?.value as CouponCode[]) || await getAllCouponsAdmin();
   const index = list.findIndex((c) => c.id === id || c.code.toUpperCase() === record.code);
   if (index >= 0) {
     list[index] = record;
   } else {
     list = [record, ...list];
   }
-  await admin.from("site_content").upsert({ key: "coupon_codes", value: list });
+  const { error: contentError } = await admin.from("site_content").upsert({ key: "coupon_codes", value: list });
+  if (tableError && contentError) throw new Error("Could not save coupon code.");
 
   return record;
 }

@@ -103,7 +103,7 @@ export type ShippingMethod = {
 export type CouponCode = {
   id: string;
   code: string;
-  type: "percentage" | "fixed";
+  type: "percentage" | "fixed" | "free_shipping";
   value: number;
   min_spend?: number;
   is_active: boolean;
