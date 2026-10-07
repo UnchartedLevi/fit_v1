@@ -21,7 +21,7 @@ Fill `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxx
+PAYSTACK_PUBLIC_KEY=pk_test_xxx
 PAYSTACK_SECRET_KEY=sk_test_xxx
 PAYSTACK_WEBHOOK_SECRET=your_webhook_secret
 APP_URL=http://localhost:3000
@@ -31,6 +31,8 @@ INSTAGRAM_GRAPH_API_VERSION=v23.0
 ```
 
 Only variables prefixed `NEXT_PUBLIC_` reach the browser. Never prefix the Paystack secret or Supabase service-role key.
+
+Store the Paystack public key as `PAYSTACK_PUBLIC_KEY` in Vercel. The hosted checkout currently requires only `PAYSTACK_SECRET_KEY` on the server, so the public key is optional and does not need browser exposure.
 
 ## Spotlight Instagram feed
 

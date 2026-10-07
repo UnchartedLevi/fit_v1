@@ -44,14 +44,14 @@ http://localhost:3000/checkout/callback
 Environment variables we will add to Vercel:
 
 PAYSTACK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
-NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx
+PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx
 APP_URL=https://fits4l.xyz
 NEXT_PUBLIC_APP_URL=https://fits4l.xyz
 
 Environment variables for local development:
 
 PAYSTACK_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
-NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx
+PAYSTACK_PUBLIC_KEY=pk_test_xxxxxxxxxxxxxxxxxxxxx
 APP_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 

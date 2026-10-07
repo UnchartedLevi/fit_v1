@@ -14,6 +14,6 @@ Admin navigation and editors now adapt to phones and tablets. Checkout shipping 
 
 Live Paystack credentials from the owner's test document were installed only in the ignored local `.env.local`. The secret was validated through a read-only Paystack API request; no payment was made. Never copy credentials into this repository.
 
-Production payment setup still requires the Vercel production environment to contain the live `PAYSTACK_SECRET_KEY` and `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, followed by a deployment. Vercel account access was not available during this update. The Word document contains a live secret; rotate that key before distributing the document further.
+Production payment setup requires the Vercel production environment to contain the live `PAYSTACK_SECRET_KEY`, followed by a deployment. The public key configuration is now named `PAYSTACK_PUBLIC_KEY` and can be stored without a public framework prefix. Hosted checkout initializes on the server using the secret key; it does not currently consume the public key. Vercel account access was not available during this update. The Word document contains a live secret; rotate that key before distributing the document further.
 
 Verification: `node --test tests/launch-pricing.test.cjs`, targeted ESLint, production build, and browser checks for category tabs, footer, coupon form and responsive admin layout.
