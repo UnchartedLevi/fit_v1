@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Check, Clock, Tag, Truck, X } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
 import { money } from "@/lib/products";
 import { toast } from "sonner";
 import type { ShippingMethod } from "@/lib/commerce-types";
+import { PaymentRedirectOverlay } from "@/components/payment-redirect-overlay";
 
 const CHECKOUT_DETAILS_KEY = "fits-checkout-details";
 
@@ -28,6 +29,7 @@ type AppliedCoupon = {
 export default function Checkout() {
   const { items, subtotal } = useCart();
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [details, setDetails] = useState<CheckoutDetails>({ name: "", email: "", phone: "", address: "" });
 
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
@@ -37,6 +39,13 @@ export default function Checkout() {
   const [couponCodeInput, setCouponCodeInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  useEffect(() => {
+    // Restoring checkout from the browser's back/forward cache must unlock it.
+    const resetPayment = () => { submitting.current = false; setBusy(false); };
+    window.addEventListener("pageshow", resetPayment);
+    return () => window.removeEventListener("pageshow", resetPayment);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -124,6 +133,7 @@ export default function Checkout() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current) return;
     if (!items.length) return toast.error("Your bag is empty");
 
     // Strictly enforce shipping method selection
@@ -131,8 +141,9 @@ export default function Checkout() {
       return toast.error("Please select a shipping method to proceed.");
     }
 
-    setBusy(true);
     const form = new FormData(event.currentTarget);
+    submitting.current = true;
+    setBusy(true);
 
     try {
       const response = await fetch("/api/paystack/initialize", {
@@ -161,27 +172,20 @@ export default function Checkout() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      if (!response.ok) throw new Error(data.error || "Unable to prepare payment. Please try again.");
+      if (!data.authorization_url) throw new Error("Payment link unavailable. Please try again.");
       window.location.href = data.authorization_url;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Checkout failed");
       setBusy(false);
+      submitting.current = false;
     }
   }
 
   return (
     <div className="page-shell">
-      {busy ? (
-        <div className="payment-overlay" role="status" aria-live="polite">
-          <div className="payment-modal">
-            <span className="payment-spinner" />
-            <p className="eyebrow">PAYSTACK SECURE CHECKOUT</p>
-            <h2>Transferring to payment gateway</h2>
-            <p>Please keep this window open while we prepare your secure payment.</p>
-          </div>
-        </div>
-      ) : null}
-
+      {busy ? <PaymentRedirectOverlay /> : null}
+      <div inert={busy} aria-busy={busy}>
       <span className="eyebrow">GUEST CHECKOUT AVAILABLE</span>
       <h1 className="page-title">CHECKOUT</h1>
 
@@ -397,7 +401,7 @@ export default function Checkout() {
             }}
           >
             {busy
-              ? "Preparing payment..."
+              ? "Redirecting to Paystack…"
               : !selectedShipping
               ? "Select a shipping method to proceed"
               : `Pay ${money(finalTotal)} with Paystack`}
@@ -446,6 +450,7 @@ export default function Checkout() {
             </div>
           </div>
         </aside>
+      </div>
       </div>
     </div>
   );
