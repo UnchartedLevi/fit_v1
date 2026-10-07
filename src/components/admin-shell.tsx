@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, CreditCard, LayoutDashboard, Package, ShoppingBag, Store, Tag, Truck } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, CreditCard, LayoutDashboard, Menu, Package, ShoppingBag, Store, Tag, Truck, X } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
@@ -15,10 +16,12 @@ const navItems = [
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar${menuOpen ? " is-open" : ""}`}>
+        <div className="admin-sidebar__heading">
         <div className="admin-sidebar__brand">
           <div className="admin-sidebar__mark">F</div>
           <div>
@@ -26,14 +29,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <h2>FITS Manager</h2>
           </div>
         </div>
+        <button type="button" className="admin-sidebar__toggle"
+          aria-expanded={menuOpen} aria-controls="admin-sidebar-content"
+          aria-label={menuOpen ? "Close admin menu" : "Open admin menu"}
+          onClick={() => setMenuOpen((open) => !open)}>
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+        </div>
 
+        <div id="admin-sidebar-content" className="admin-sidebar__content">
         <nav className="admin-nav" aria-label="Admin sections">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
 
             return (
-              <Link key={item.href} href={item.href} className={`admin-nav-item${isActive ? " active" : ""}`}>
+              <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className={`admin-nav-item${isActive ? " active" : ""}`}>
                 <Icon size={16} />
                 <span>{item.label}</span>
                 {isActive ? <span className="admin-nav-pill">Live</span> : null}
@@ -51,6 +62,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             View storefront
             <ArrowUpRight size={16} />
           </Link>
+        </div>
         </div>
       </aside>
 
