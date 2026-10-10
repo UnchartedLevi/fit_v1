@@ -34,6 +34,7 @@ export async function proxy(request: NextRequest) {
         pathname.startsWith("/products") ||
         pathname.startsWith("/cart") ||
         pathname.startsWith("/checkout") ||
+        pathname === "/account" || pathname.startsWith("/account/") ||
         pathname.startsWith("/admin") ||
         pathname.startsWith("/auth") ||
         pathname.startsWith("/api") ||

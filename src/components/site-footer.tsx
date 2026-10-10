@@ -14,7 +14,7 @@ export function SiteFooter() {
         <b>Explore</b>
         <Link href="/products">Shop all</Link>
         <Link href="/products?category=Jerseys">Jerseys</Link>
-        <Link href="/auth/login">Account</Link>
+        <Link href="/account">Account & orders</Link>
       </div>
       <div>
         <b>Follow</b>

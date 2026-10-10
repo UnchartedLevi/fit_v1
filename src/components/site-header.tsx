@@ -202,7 +202,7 @@ export function SiteHeader({ initialIsShopSubdomain = false }: { initialIsShopSu
 
         {email ? (
           <>
-            <Link href="/auth/login" className="account-initial" aria-label={`Signed in as ${email}`}>{email[0]?.toUpperCase()}</Link>
+            <Link href="/account" className="account-initial" aria-label={`My account and orders, signed in as ${email}`}>{email[0]?.toUpperCase()}</Link>
             <button className="logout-button" type="button" onClick={logout} aria-label="Log out"><LogOut /></button>
           </>
         ) : (

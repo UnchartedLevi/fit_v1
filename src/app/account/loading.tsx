@@ -1,0 +1,1 @@
+export default function Loading() { return <div className="page-shell account-page" role="status"><p className="eyebrow">FITS ACCOUNT</p><h1>Loading your orders…</h1><p>Please wait while we retrieve your account details.</p></div>; }

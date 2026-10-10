@@ -20,7 +20,7 @@ export default function AuthCallback() {
       if (completed) return;
       completed = true;
       setMessage("Your account is confirmed. Taking you to FITS…");
-      router.replace("/");
+      router.replace("/account");
       router.refresh();
     };
 

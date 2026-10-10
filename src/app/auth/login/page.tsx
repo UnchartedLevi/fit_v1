@@ -9,7 +9,7 @@ export default async function Login({
 
   return (
     <div className="page-shell">
-      <AuthForm mode="login" next={params.next ?? "/"} />
+      <AuthForm mode="login" next={params.next?.startsWith("/") && !params.next.startsWith("//") && !params.next.includes("\\") ? params.next : "/account"} />
     </div>
   );
 }

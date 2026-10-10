@@ -2999,6 +2999,40 @@ th {
 .payment-modal small { display: block; font-size: 13px; line-height: 1.5; color: #555; }
 .payment-spinner { display: inline-block; width: 44px; height: 44px; border: 3px solid #ddd; border-top-color: #16803d; border-radius: 50%; animation: fits-payment-spin .8s linear infinite; }
 @keyframes fits-payment-spin { to { transform: rotate(360deg); } }
+.account-page { max-width: 1000px; }
+.account-heading, .account-order-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.account-heading h1 { font-size: clamp(28px, 5vw, 48px); margin: 12px 0; letter-spacing: -.04em; }
+.account-heading p { overflow-wrap: anywhere; }
+.account-note { font-size: 14px; color: #555; line-height: 1.6; }
+.account-orders { display: grid; gap: 16px; }
+.account-panel { border: 1px solid var(--line); padding: clamp(16px, 4vw, 28px); background: #fff; margin-top: 20px; min-width: 0; overflow-wrap: anywhere; }
+.account-panel h2 { font-size: clamp(18px, 4vw, 24px); margin: 0 0 10px; }
+.account-panel p { font-size: 14px; line-height: 1.6; }
+.account-order-heading { margin-bottom: 8px; }
+.account-statuses, .account-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+.account-statuses span { font-size: 12px; padding: 7px 10px; background: #f2f1ec; border-radius: 4px; text-transform: capitalize; }
+.account-actions a, .account-actions button { min-height: 44px; display: inline-flex; align-items: center; }
+.account-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; padding: 0; margin: 24px 0; gap: 12px; }
+.account-progress li { border-top: 3px solid #ddd; padding: 12px 0; font-size: 13px; color: #555; }
+.account-progress li.is-complete { border-color: #16803d; color: #125b2d; }
+.account-progress li span { display: block; font-weight: 800; margin-bottom: 8px; }
+.account-progress li small { display: block; margin-top: 6px; font-weight: 700; }
+.account-item, .account-totals > div { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.account-item > div { min-width: 0; }
+.account-item small { display: block; font-size: 13px; color: #555; margin-top: 6px; }
+.account-item > strong { white-space: nowrap; }
+.account-totals dd { margin: 0; }
+.account-total { font-weight: 800; }
+.account-delivery { margin-top: 24px; }
+.account-reference { overflow-wrap: anywhere; font-size: 12px !important; }
+@media (max-width: 650px) { .account-progress { grid-template-columns: 1fr 1fr; } .account-page { padding-left: 4vw; padding-right: 4vw; } .account-item { font-size: 14px; } }
+@media print {
+  .site-header, footer, .receipt-controls, [data-sonner-toaster], nextjs-portal { display: none !important; }
+  .receipt-page { padding: 0; margin: 0; max-width: none; }
+  .receipt-content { border: 0; padding: 0; margin: 0; background: #fff; color: #000; }
+  .receipt-content .account-item, .receipt-content .account-totals { break-inside: avoid; }
+  body { background: #fff; }
+}
 .checkout-phone-input { display: flex; align-items: stretch; border: 1px solid var(--line); min-width: 0; }
 .checkout-phone-input > span { display: flex; align-items: center; padding: 0 12px; border-right: 1px solid var(--line); font-size: 16px; font-weight: 700; }
 .checkout-phone-input > input { flex: 1; width: 0; min-width: 0; border: 0; font-size: 16px; }

@@ -460,7 +460,7 @@ export default function Checkout() {
           </button>
 
           <p className="checkout-note secondary">
-            Want order history later? <Link href="/auth/signup">Create an account</Link> after checkout or sign in before your next order.
+            Want this order in your history? <Link href="/auth/login?next=/checkout">Sign in before paying</Link> or <Link href="/auth/signup">create an account</Link>. Guest orders are not automatically added later. <Link href="/account">View my orders</Link>.
           </p>
         </form>
 
