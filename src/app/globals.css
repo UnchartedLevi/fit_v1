@@ -2999,6 +2999,10 @@ th {
 .payment-modal small { display: block; font-size: 13px; line-height: 1.5; color: #555; }
 .payment-spinner { display: inline-block; width: 44px; height: 44px; border: 3px solid #ddd; border-top-color: #16803d; border-radius: 50%; animation: fits-payment-spin .8s linear infinite; }
 @keyframes fits-payment-spin { to { transform: rotate(360deg); } }
+.checkout-phone-input { display: flex; align-items: stretch; border: 1px solid var(--line); min-width: 0; }
+.checkout-phone-input > span { display: flex; align-items: center; padding: 0 12px; border-right: 1px solid var(--line); font-size: 16px; font-weight: 700; }
+.checkout-phone-input > input { flex: 1; width: 0; min-width: 0; border: 0; font-size: 16px; }
+.checkout-phone-input:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .payment-spinner, .payment-modal { animation: none; } }
 
 @keyframes fits-pulse {

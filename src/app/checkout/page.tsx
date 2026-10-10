@@ -8,6 +8,7 @@ import { money } from "@/lib/products";
 import { toast } from "sonner";
 import type { ShippingMethod } from "@/lib/commerce-types";
 import { PaymentRedirectOverlay } from "@/components/payment-redirect-overlay";
+import { phoneInputDigits, updateCheckoutPhone } from "@/lib/checkout-phone";
 
 const CHECKOUT_DETAILS_KEY = "fits-checkout-details";
 
@@ -15,6 +16,8 @@ type CheckoutDetails = {
   name: string;
   email: string;
   phone: string;
+  contactPhone: string;
+  contactPhoneEdited: boolean;
   address: string;
 };
 
@@ -30,7 +33,7 @@ export default function Checkout() {
   const { items, subtotal } = useCart();
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
-  const [details, setDetails] = useState<CheckoutDetails>({ name: "", email: "", phone: "", address: "" });
+  const [details, setDetails] = useState<CheckoutDetails>({ name: "", email: "", phone: "", contactPhone: "", contactPhoneEdited: false, address: "" });
 
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [selectedShipping, setSelectedShipping] = useState<ShippingMethod | null>(null);
@@ -51,7 +54,10 @@ export default function Checkout() {
     const timer = window.setTimeout(() => {
       try {
         const stored = JSON.parse(window.localStorage.getItem(CHECKOUT_DETAILS_KEY) || "{}") as Partial<CheckoutDetails>;
-        setDetails((current) => ({ ...current, ...stored }));
+        const phone = phoneInputDigits(stored.phone || "");
+        const contactPhone = phoneInputDigits(stored.contactPhone ?? stored.phone ?? "");
+        setDetails((current) => ({ ...current, ...stored, phone, contactPhone,
+          contactPhoneEdited: stored.contactPhoneEdited ?? (contactPhone !== phone) }));
       } catch {}
     }, 0);
     return () => window.clearTimeout(timer);
@@ -76,8 +82,10 @@ export default function Checkout() {
     loadShipping();
   }, []);
 
-  function updateDetails(field: keyof CheckoutDetails, value: string) {
-    const next = { ...details, [field]: value };
+  function updateDetails(field: Exclude<keyof CheckoutDetails, "contactPhoneEdited">, value: string) {
+    const next = field === "phone" || field === "contactPhone"
+      ? updateCheckoutPhone(details, field, value)
+      : { ...details, [field]: value };
     setDetails(next);
     window.localStorage.setItem(CHECKOUT_DETAILS_KEY, JSON.stringify(next));
   }
@@ -150,7 +158,7 @@ export default function Checkout() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customer: Object.fromEntries(form),
+          customer: { ...Object.fromEntries(form), phone: `+234${details.phone}`, contact_phone: `+234${details.contactPhone}` },
           items: items.map((item) => ({
             product_id: item.product.id,
             variant_id: item.variantId,
@@ -197,9 +205,10 @@ export default function Checkout() {
 
           <div className="form-grid">
             <label className="field">
-              <span>Full name</span>
+              <span>Name (or IG username)</span>
               <input
                 name="name"
+                placeholder="Your name or @IGusername"
                 required
                 value={details.name}
                 onChange={(event) => updateDetails("name", event.target.value)}
@@ -216,27 +225,70 @@ export default function Checkout() {
               />
             </label>
             <label className="field">
-              <span>Phone</span>
-              <input
+              <span>Paystack payment number</span>
+              <div className="checkout-phone-input">
+                <span aria-hidden="true">+234</span>
+                <input
                 name="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                aria-label="Paystack payment number, 10 digits after +234"
+                aria-describedby="checkout-phone-help"
+                pattern="[789][0-9]{9}"
+                maxLength={10}
+                minLength={10}
+                placeholder="9123456789"
                 required
                 value={details.phone}
                 onChange={(event) => updateDetails("phone", event.target.value)}
+                onPaste={(event) => {
+                  event.preventDefault();
+                  updateDetails("phone", event.clipboardData.getData("text"));
+                }}
               />
+              </div>
+              <small id="checkout-phone-help">Use the number registered with your bank for payment verification. Your bank controls where card verification codes are sent. Enter 10 digits after +234, without the first 0.</small>
+            </label>
+            <label className="field">
+              <span>Contact number (Telegram)</span>
+              <div className="checkout-phone-input">
+                <span aria-hidden="true">+234</span>
+                <input
+                  name="contact_phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  aria-label="Contact number for Telegram, 10 digits after +234"
+                  aria-describedby="checkout-contact-help"
+                  pattern="[789][0-9]{9}"
+                  maxLength={10}
+                  minLength={10}
+                  placeholder="9123456789"
+                  required
+                  value={details.contactPhone}
+                  onChange={(event) => updateDetails("contactPhone", event.target.value)}
+                  onPaste={(event) => {
+                    event.preventDefault();
+                    updateDetails("contactPhone", event.clipboardData.getData("text"));
+                  }}
+                />
+              </div>
+              <small id="checkout-contact-help">We’ll contact you here about your order and delivery. Your payment number is copied automatically; change it if you use a different number on Telegram.</small>
             </label>
             <label className="field full">
-              <span>Delivery address</span>
+              <span>Hall and room number</span>
               <textarea
                 name="address"
                 required
-                minLength={8}
+                minLength={3}
                 rows={3}
-                placeholder="Input Address"
+                placeholder="Example: Peter Hall, Room B205"
                 value={details.address}
                 onChange={(event) => updateDetails("address", event.target.value)}
               />
               <small>
-                <b>Note:</b> Covenant students should include hall and room number. Example: Peter Hall, Room B205.
+                <b>Covenant University delivery only.</b> All we need is your hall and room number. No full street address is needed.
               </small>
             </label>
           </div>

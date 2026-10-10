@@ -7,13 +7,15 @@ import { getProductPurchaseMode, getVariantChoiceLabel } from "@/lib/product-opt
 import { listActiveShippingMethods } from "@/lib/shipping";
 import { validateCoupon } from "@/lib/coupons";
 import { listProducts } from "@/lib/catalogue";
+import { checkoutPhoneSchema } from "@/lib/checkout-phone";
 
 const Body = z.object({
   customer: z.object({
     name: z.string().min(2),
     email: z.string().email(),
-    phone: z.string().min(7),
-    address: z.string().min(8, "Enter your delivery address"),
+    phone: checkoutPhoneSchema,
+    contact_phone: checkoutPhoneSchema.optional(),
+    address: z.string().trim().min(3, "Enter your hall and room number"),
   }),
   items: z
     .array(
@@ -65,6 +67,7 @@ function generateOrderNumber() {
 }
 
 function errorMessage(error: unknown) {
+  if (error instanceof z.ZodError) return error.issues[0]?.message || "Invalid checkout details";
   if (error instanceof Error) return error.message;
   if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message;
   return "Invalid request";
@@ -158,7 +161,8 @@ export async function POST(req: Request) {
     const reference = `${orderNumber}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const deliverySnapshot = {
       recipient_name: body.customer.name,
-      phone: body.customer.phone,
+      phone: body.customer.contact_phone ?? body.customer.phone,
+      payment_phone: body.customer.phone,
       address_line_1: body.customer.address.trim(),
       shipping_zone: shipping.zone_name,
       shipping_eta: shipping.eta,
@@ -175,7 +179,7 @@ export async function POST(req: Request) {
         order_number: orderNumber,
         user_id: user?.id ?? null,
         customer_email: body.customer.email,
-        customer_phone: body.customer.phone,
+        customer_phone: body.customer.contact_phone ?? body.customer.phone,
         status: "pending_payment",
         payment_status: "pending",
         fulfilment_status: "unfulfilled",
@@ -224,6 +228,8 @@ export async function POST(req: Request) {
           order_id: order.id,
           order_number: orderNumber,
           customer_name: body.customer.name,
+          payment_phone: body.customer.phone,
+          contact_phone: body.customer.contact_phone ?? body.customer.phone,
           shipping_zone: shipping.zone_name,
           coupon_code: body.coupon?.code,
         },
