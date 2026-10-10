@@ -18,7 +18,6 @@ export function CustomerOrderSummary({ order }: { order: CustomerOrder }) {
       <div className="account-total"><dt>Total</dt><dd>{money(order.total_amount)}</dd></div>
     </dl>
     <div className="account-delivery"><h3>Customer & delivery</h3><p>{order.delivery_address_snapshot?.recipient_name}</p><p>{order.customer_email} · {order.customer_phone}</p><p>{order.delivery_address_snapshot?.address_line_1}</p><p>{order.delivery_address_snapshot?.shipping_zone}</p>
-      {order.delivery_address_snapshot?.shipping_eta ? <p>Estimated delivery: {order.delivery_address_snapshot.shipping_eta}</p> : null}
       {order.payment_status === "paid" && order.paystack_reference ? <p className="account-reference">Payment reference: {order.paystack_reference}</p> : null}
     </div>
   </section>;

@@ -1,5 +1,7 @@
 # Customer account and orders
 
+Delivery-time estimates are currently hidden from checkout, order details and receipts, including historical orders with stored estimates. Delivery choices, descriptions, prices and admin-updated progress remain. Internal admin ETA configuration is retained for possible future use; removing this display does not change shipping fees or historical records.
+
 `/account` shows authenticated customers their newest orders with paginated history. The account icon, ordinary login and confirmation callbacks now lead here. Storefront proxy routing permits `/account` on both the primary and shop domain.
 
 `/account/orders/[id]` shows order item snapshots, payment status, totals, delivery information and admin-updated delivery progress. Refresh status fetches current server data. This is not live courier tracking; no tracking provider or invented tracking number is used.

@@ -92,3 +92,19 @@ test('receipt route only renders paid orders', async () => {
     if(status==='paid') assert.ok(await render); else await assert.rejects(render,/NOT_FOUND/);
   }
 });
+test('order details and receipts hide historical delivery time estimates', () => {
+  const summary=load('src/components/customer-order-summary.tsx', {
+    '@/lib/products':{money:amount=>`NGN ${amount}`},
+    '@/lib/customer-orders':{orderDate:()=> '10 Oct 2026'},
+  });
+  const order={order_number:'FITS-TEST',payment_status:'paid',created_at:'2026-10-10',paid_at:null,
+    order_items:[],subtotal:1000,discount_amount:0,delivery_fee:499,tax_amount:0,total_amount:1499,
+    customer_email:'test@example.com',customer_phone:'+2349123456789',paystack_reference:'TEST',
+    delivery_address_snapshot:{shipping_zone:'Covenant University Campus',address_line_1:'Peter B205',shipping_eta:'Same Day (6 - 8pm everyday)'}};
+  const html=require('react-dom/server').renderToStaticMarkup(require('react').createElement(summary.CustomerOrderSummary,{order}));
+  assert.ok(html.includes('Covenant University Campus'));
+  assert.ok(html.includes('NGN 499'));
+  assert.ok(!html.includes('Same Day'));
+  assert.ok(!html.includes('Estimated delivery'));
+  assert.ok(!html.includes('8pm'));
+});

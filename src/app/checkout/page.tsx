@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Check, Clock, Tag, Truck, X } from "lucide-react";
+import { Check, Tag, Truck, X } from "lucide-react";
 import { useCart } from "@/components/cart-provider";
 import { money } from "@/lib/products";
 import { toast } from "sonner";
@@ -168,7 +168,6 @@ export default function Checkout() {
             id: selectedShipping.id,
             zone_name: selectedShipping.zone_name,
             price: selectedShipping.price,
-            eta: selectedShipping.eta,
           },
           coupon: appliedCoupon
             ? {
@@ -342,9 +341,6 @@ export default function Checkout() {
                               {method.description}
                             </span>
                           ) : null}
-                          <span style={{ fontSize: "12px", color: "#555", display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
-                            <Clock size={12} /> {method.eta}
-                          </span>
                         </div>
                       </div>
 
